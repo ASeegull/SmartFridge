@@ -17,11 +17,6 @@ import (
 
 const (
 	//postgres connection credentials
-	dbhost     = "tantor.db.elephantsql.com"
-	dbport     = "5432"
-	dbUser     = "migsfgcy"
-	dbPassword = "qLVBFGw_FL_IsZtjfIGK-clkEPnsRM_E"
-	dbName     = "migsfgcy"
 
 	avgNumrOfIngInRecepie  = 7
 	prognosedNumOfRecepies = 100
@@ -29,12 +24,12 @@ const (
 )
 
 var dbinfo = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-	dbhost, dbport, dbUser, dbPassword, dbName)
+	postgresConfig.Dbhost, postgresConfig.Dbport, postgresConfig.DbUser, postgresConfig.DbPassword, postgresConfig.DbName)
 var db *gorm.DB
-var err error
 
 //RegisterNewUser adds a new user, returns error if adding was not successful
 func RegisterNewUser(login string, passHash string) error {
+	var err error
 	db, err = gorm.Open("postgres", dbinfo)
 	if err != nil {
 		return err
@@ -65,6 +60,7 @@ func RegisterNewUser(login string, passHash string) error {
 
 //ClientLogin checks login and pass for client
 func ClientLogin(login string, pass string) error {
+	var err error
 	db, err = gorm.Open("postgres", dbinfo)
 	if err != nil {
 		return err
@@ -90,6 +86,7 @@ func ClientLogin(login string, pass string) error {
 
 //CheckAgent checks agent registration, if agent is associated with a user returns true as first returning value
 func CheckAgent(idUser string, idAgent string) (bool, error) {
+	var err error
 	db, err = gorm.Open("postgres", dbinfo)
 	if err != nil {
 		return false, err
@@ -110,6 +107,7 @@ func CheckAgent(idUser string, idAgent string) (bool, error) {
 
 //RegisterNewAgent adds a new agent to user, returns nil if adding was successful
 func RegisterNewAgent(idUser string, idAgent string) error {
+	var err error
 	db, err = gorm.Open("postgres", dbinfo)
 	if err != nil {
 		return err
@@ -131,6 +129,7 @@ func RegisterNewAgent(idUser string, idAgent string) error {
 
 //GetAllAgentsIDForClient returns all agent for clientID as a sice of string
 func GetAllAgentsIDForClient(userID string) ([]string, error) {
+	var err error
 	db, err = gorm.Open("postgres", dbinfo)
 	if err != nil {
 		return nil, err
@@ -159,6 +158,7 @@ func GetAllAgentsIDForClient(userID string) ([]string, error) {
 
 //GetDefaultExplorationDate function returns expiration date a product as time.Time object
 func GetDefaultExplorationDate(productName string) (time.Time, error) {
+	var err error
 	db, err = gorm.Open("postgres", dbinfo)
 	if err != nil {
 		return time.Time{}, err
@@ -182,12 +182,13 @@ func GetDefaultExplorationDate(productName string) (time.Time, error) {
 
 //AllRecipes functions returns all Recipes with ingridients as a JSON
 func AllRecipes() ([]byte, error) {
+	var err error
 	db, err = gorm.Open("postgres", dbinfo)
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
-		err := db.Close()
+		err = db.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -224,6 +225,7 @@ func AllRecipes() ([]byte, error) {
 
 //GetAllProductsID returns a slice, containing IDs of all products
 func GetAllProductsID() ([]int, error) {
+	var err error
 	db, err = gorm.Open("postgres", dbinfo)
 	if err != nil {
 		return nil, err
@@ -252,12 +254,13 @@ func GetAllProductsID() ([]int, error) {
 
 //Recipes takes the slice of FoodInfo strucktures, representing all available products in all agents and return all recepies, which can be offered as a JSON
 func Recipes(foodInfoSlice []FoodInfo) ([]byte, error) {
+	var err error
 	db, err = gorm.Open("postgres", dbinfo)
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
-		err := db.Close()
+		err = db.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
