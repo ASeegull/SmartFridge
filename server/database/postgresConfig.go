@@ -3,7 +3,6 @@ package database
 import (
 	"io/ioutil"
 
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -29,18 +28,22 @@ type PostgresConfigStr struct {
 
 var postgresConfig *PostgresConfigStr
 
-func init() {
+//InitPostgresConfig returns postgres configuration struckture. If it not exists, creates a new one using GetPostgresConfig fron configuration file
+func InitPostgresConfig() (*PostgresConfigStr, error) {
 	var err error
+	if postgresConfig != nil {
+		return postgresConfig, nil
+	}
 	postgresConfig, err = GetPostgresConfig(cfgPath)
 	if err != nil {
-		log.Errorf("Failed to read config file %v", err)
+		return nil, err
 	}
 	postgresConfig.setDbhost()
 	postgresConfig.setDbport()
 	postgresConfig.setDbUser()
 	postgresConfig.setDbPassword()
 	postgresConfig.setDbName()
-
+	return postgresConfig, nil
 }
 
 //GetPostgresConfig reads configuration file and stores values to struct variable
