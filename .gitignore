@@ -17,6 +17,7 @@
 
 .vscode
 .idlerc
+.idea
 
 # OSX
 .DS_Store
