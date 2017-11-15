@@ -1,0 +1,32 @@
+html {
+    font-size: 14px;
+    color: darkslategrey;
+    background-color: #eaeef3;
+}
+
+.button {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 7vh;
+    width: 30vh;
+    border: 2px solid darkslategrey;
+    border-radius: 15px;
+    background-color: #e0e0e0;
+}
+
+.button:hover {
+    cursor: pointer;
+    background-color: darkslategrey;
+    color: #fff;
+}
+
+.button__fridgeContents {
+    bottom: 40%;
+    transform: translateY(-40%);
+}
+
+.button__cookbook {
+    bottom: 25%;
+    transform: translateY(-25%);
+}

@@ -1,0 +1,5 @@
+package staticServer
+
+func main() {
+
+}
