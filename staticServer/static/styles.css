@@ -2,17 +2,25 @@ html {
     font-size: 14px;
     color: darkslategrey;
     background-color: #eaeef3;
+    font-family: "Verdana", sans-serif;
 }
 
 .button {
     position: absolute;
     left: 50%;
-    transform: translateX(-50%);
     height: 7vh;
-    width: 30vh;
+    width: 30vw;
+    display: flex;
+    justify-content: center;
     border: 2px solid darkslategrey;
     border-radius: 15px;
     background-color: #e0e0e0;
+}
+
+.button > span {
+    align-self: center;
+    text-transform: uppercase;
+    font-weight: bold;
 }
 
 .button:hover {
@@ -22,11 +30,11 @@ html {
 }
 
 .button__fridgeContents {
-    bottom: 40%;
-    transform: translateY(-40%);
+    bottom: 30%;
+    transform: translate(-50%, -30%);
 }
 
 .button__cookbook {
-    bottom: 25%;
-    transform: translateY(-25%);
+    bottom: 15%;
+    transform: translate(-50%, -15%);
 }
