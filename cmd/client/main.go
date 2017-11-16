@@ -11,6 +11,6 @@ import (
 func main() {
 	r := s.NewRouter()
 	port := ":" + s.GetPort()
-	fmt.Printf("Client server is listening on port %s", port)
+	fmt.Printf("Client server is listening on port %s\n", port)
 	log.Fatal(http.ListenAndServe(port, r))
 }
