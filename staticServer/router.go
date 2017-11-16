@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-//Creates gorilla router
+// NewRouter сreates and returns gorilla router
 func NewRouter() *mux.Router {
 	r := mux.NewRouter()
 	r.Handle("/", http.FileServer(http.Dir("../../staticServer/static")))
@@ -19,7 +19,7 @@ func NewRouter() *mux.Router {
 	return r
 }
 
-//Sets port for dev or production
+// GetPort sets port for dev or production
 func GetPort() string {
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -30,9 +30,12 @@ func GetPort() string {
 
 func fetch(query string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		res, serverErr := http.Get("localhost:9000/" + query)
-		if serverErr != nil {
-			log.Println("Could not get response", serverErr)
+		res, err := http.Get("http://localhost:9000/" + query)
+		if err != nil {
+			log.Println("Could not get response", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 - Something bad happened!"))
+			return
 		}
 		defer res.Body.Close()
 		jsn, readErr := ioutil.ReadAll(res.Body)

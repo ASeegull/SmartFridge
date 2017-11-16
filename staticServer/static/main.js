@@ -4,7 +4,7 @@
     const GetRecipesBtn = document.getElementById('getRecipes');
 
     //Creates host constant
-    const host = 'localhost:8080';
+    const host = 'http://localhost:8080';
 
     //Adds eventlisteners to buttons
     GetContentBtn.addEventListener('click', getContent);
@@ -12,14 +12,26 @@
 
     //Abstract GET request
     function fetchData(query) {
-        return fetch(host + query, {
+        return fetch(query, {
             method: "GET",
             headers: {
-                "Content-Type": "application/json"
+                'Accept': 'application/json, text/plain, */*',
+                "Content-Type": "application/json, text/plain"
             }
-        }).then(res => jsn = res.json())
+        }).then(res => {
+            let contentType = res.headers.get("content-type");
+            console.log(contentType);
+            if(contentType && contentType.indexOf("application/json") !== -1) {
+              return res.json().then(data => {
+                console.log(data);
+              });
+            } else {
+              return res.text().then(text => {
+                console.log(text);
+              });
+            }})
           .catch(e => console.log(e));
-    }
+        }
 
     //Fetches content of user's fridge from server
     function getContent() {
