@@ -12,8 +12,8 @@ import (
 //Creates gorilla router
 func NewRouter() *mux.Router {
 	r := mux.NewRouter()
-	r.Handle("/", http.FileServer(http.Dir("static")))
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
+	r.Handle("/", http.FileServer(http.Dir("../../staticServer/static")))
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("../../staticServer/static"))))
 	r.Path("/content").HandlerFunc(fetch("fridgeContent")).Methods("GET")
 	r.Path("/recipes").HandlerFunc(fetch("allRecipes")).Methods("GET")
 	return r
