@@ -1,5 +1,9 @@
 package database
 
+const (
+	defaultExpirationDays = 5
+)
+
 //ClientValidation checks login and pass for user
 func ClientValidation(login string, pass string) error {
 
@@ -20,9 +24,7 @@ func ClientLogin(login string, pass string) error {
 
 //GetDefaultExpirationPeriod returns default period
 func GetDefaultExpirationPeriod(productID int) (int, error) {
-
-	days := 10
-	return days, nil
+	return defaultExpirationDays, nil
 }
 
 //CheckAgent checks agent registration
@@ -39,5 +41,5 @@ func RegisterNewAgent(clientID string, agentID string) error {
 //GetAllAgentsIDForClient returns all agent for clientID
 func GetAllAgentsIDForClient(clientID string) ([]string, error) {
 
-	return []string{}, nil
+	return nil, nil
 }
