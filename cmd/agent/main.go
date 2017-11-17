@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/ASeegull/SmartFridge/examplePackage"
 	"fmt"
+
+	"github.com/ASeegull/SmartFridge/examplePackage"
 )
 
 func main() {
