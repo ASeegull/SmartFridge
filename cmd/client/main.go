@@ -1,16 +1,15 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"net/http"
 
-	s "github.com/ASeegull/SmartFridge/staticServer"
+	"github.com/ASeegull/SmartFridge/staticServer"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	r := s.NewRouter()
-	port := ":" + s.GetPort()
-	fmt.Printf("Client server is listening on port %s\n", port)
+	r := staticServer.NewRouter()
+	port := staticServer.GetPort()
+	log.WithField("port", port).Info("Client server is listening on")
 	log.Fatal(http.ListenAndServe(port, r))
 }
