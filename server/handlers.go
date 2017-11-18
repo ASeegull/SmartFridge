@@ -6,23 +6,34 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
+	"time"
 
 	"github.com/ASeegull/SmartFridge/server/database"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
 
-var wg sync.WaitGroup
-
 func getHash(stringToHash string) string {
 	hash := md5.Sum([]byte(stringToHash))
 	return hex.EncodeToString(hash[:])
 }
 
+var upgrader websocket.Upgrader
+
+func setUpgrader() {
+	upgrader = websocket.Upgrader{
+		ReadBufferSize:  serverConfig.ReadBufferSize,
+		WriteBufferSize: serverConfig.WriteBufferSize,
+	}
+}
+
 func agentAuthentication(w http.ResponseWriter, r *http.Request) {
 	tokenExample := getHash("userID+agentID+productName")
-	json.NewEncoder(w).Encode(tokenExample)
+	err := json.NewEncoder(w).Encode(tokenExample)
+
+	if err != nil {
+		log.Print(err)
+	}
 }
 
 func createWS(w http.ResponseWriter, r *http.Request) {
@@ -43,22 +54,24 @@ func wsListener(conn *websocket.Conn) {
 	defer conn.Close()
 
 	for {
-		fmt.Println("here will be reading info from websocket")
+		time.Sleep(time.Second * serverConfig.WebsocketSleep)
+		//here will be reading info from websocket
 	}
 }
 
-type userId struct {
+type userID struct {
 	id string
 }
 
 func getFoodInfo(w http.ResponseWriter, r *http.Request) {
-	var u userId
+	var u userID
 	if r.Body == nil {
 		http.Error(w, "Please send a request body", 400)
 		return
 	}
 	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), 400)
 		return
 	}
@@ -67,21 +80,30 @@ func getFoodInfo(w http.ResponseWriter, r *http.Request) {
 
 	IDs, err := database.GetAllAgentsIDForClient(u.id)
 	if err != nil {
-		log.Error(err)
+		log.Println(err)
+		http.Error(w, err.Error(), 404)
 		return
 	}
 
 	var foods []database.FoodInfo
-
-	if len(IDs) != 0 {
-		foods = database.GetFoodsInFridge(IDs)
+	foods, err = database.GetFoodsInFridge(IDs)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), 404)
+		return
 	}
 
-	json.NewEncoder(w).Encode(foods)
+	err = json.NewEncoder(w).Encode(foods)
+	if err != nil {
+		log.Print(err)
+	}
 }
 
 func getRecipes(w http.ResponseWriter, r *http.Request) {
-
+	err := json.NewEncoder(w).Encode("Here will be your recipes")
+	if err != nil {
+		log.Print(err)
+	}
 }
 
 func searchRecipes(w http.ResponseWriter, r *http.Request) {

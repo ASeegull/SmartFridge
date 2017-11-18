@@ -1,6 +1,6 @@
 package database
 
-//FoodInfo is example struct from agent
+//FoodInfo is example struct for agent
 type FoodInfo struct {
 	Name   string `bson:"name"`
 	Veight int    `bson:"veight"`
@@ -8,7 +8,7 @@ type FoodInfo struct {
 	Value  int    `bson:"value"`
 }
 
-//FoodInfo is example struct from agent
+//FoodAgent is example struct for agent
 type FoodAgent struct {
 	Token       string   `bson:"token"`
 	ContainerID string   `bson:"containerid"`

@@ -1,37 +1,54 @@
 package server
 
 import (
+	"sync"
+
 	"github.com/ASeegull/SmartFridge/server/config"
+	"github.com/ASeegull/SmartFridge/server/database"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
-	defaultPort = "9000"
-	defaultHost = "localhost"
+	defaultPort            = "9000"
+	defaultHost            = "localhost"
+	defaultReadBufferSize  = 1024
+	defaultWriteBufferSize = 1024
+	defaultWebsocketSleep  = 2
 )
 
-var serverConfig = config.GetServerConfig()
+var serverConfig *config.ServerConfig
+var wg *sync.WaitGroup
 
-// GetAddr sets host and port for server
-func GetAddr() (host string, port string) {
-	host = serverConfig.Host
-	port = serverConfig.Port
-
-	if port == "" {
-		port = defaultPort
-	}
-
-	if host == "" {
-		host = defaultHost
-	}
-
-	return host, port
+//SetWaitGroup sets WaitGroup
+func SetWaitGroup(waitGroup *sync.WaitGroup) {
+	wg = waitGroup
 }
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  serverConfig.ReadBufferSize,
-	WriteBufferSize: serverConfig.WriteBufferSize,
+//ReadConfig reads config from file
+func ReadConfig() {
+	var mongoDBConfig *config.MongoConfig
+	if err := config.ReadConfig(); err != nil {
+		serverConfig = &config.ServerConfig{
+			Port:            defaultPort,
+			Host:            defaultHost,
+			ReadBufferSize:  defaultReadBufferSize,
+			WriteBufferSize: defaultWriteBufferSize,
+			WebsocketSleep:  defaultWebsocketSleep}
+
+		log.Println("cannot read config. Used default values")
+	} else {
+		mongoDBConfig = config.GetMongoConfig()
+		serverConfig = config.GetServerConfig()
+	}
+
+	setUpgrader()
+	database.InitiateMongoDB(mongoDBConfig)
+}
+
+// GetAddr sets host and port for server
+func GetAddr() (string, string) {
+	return serverConfig.Host, serverConfig.Port
 }
 
 //NewRouter creates new gorilla router

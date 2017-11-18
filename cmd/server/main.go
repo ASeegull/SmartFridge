@@ -10,12 +10,12 @@ import (
 
 func main() {
 	var wg *sync.WaitGroup
+	server.SetWaitGroup(wg)
+	defer wg.Wait()
 
 	server.ReadConfig()
-	server.SetWaitGroup(wg)
 	host, port := server.GetAddr()
 	router := server.NewRouter()
 	log.Printf("Server started on %s:%s", host, port)
 	log.Fatal(http.ListenAndServe(host+":"+port, router))
-	wg.Wait()
 }
