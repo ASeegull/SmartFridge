@@ -8,48 +8,9 @@ import (
 	"time"
 	"errors"
 	"github.com/jinzhu/gorm"
-//importing Go Postgres driver for database
+
 	_ "github.com/lib/pq"
-	"log"
 )
-//MUnit represents units of measure used for products
-type MUnit struct {
-	ID   int
-	Unit string
-}
-//Agent represents an agent entity
-type Agent struct {
-	ID     int
-	UserID int
-}
-//Ingridient represents an ingredient in a recepie
-type Ingridient struct {
-	ProductID int
-	RecipeID  int
-	Amount    int
-}
-//Product represents an product
-type Product struct {
-	ID        int
-	Name      string
-	ShelfLife int
-	Units     int
-}
-//Recepie represents a recepie
-type Recepie struct {
-	ID              int			`json:"id"`
-	Name            string		`json:"name"`
-	Description     string		`json:"description"`
-	CoockingTimeMin int			`json:"coockingTimeMin"`
-	Complexity      string		`json:"complexity"`
-	Ingred          []string	`json:"ingred"`
-}
-//User represents a user
-type User struct {
-	ID       int
-	Login    string
-	Password string
-}
 
 const (
 	//postgres connection credentials
@@ -67,9 +28,6 @@ func RegisterNewUser(login string, passHash string) error {
 		return errors.New("db connection error")
 	}
 	defer db.Close()
-	if err != nil {
-		log.Println(err)
-	}
 	user := User{}
 	db.Last(&user)
 	user.ID++
@@ -91,9 +49,6 @@ func ClientLogin(login string, pass string) error {
 		return errors.New("db connection error")
 	}
 	defer db.Close()
-	if err != nil {
-		log.Println(err)
-	}
 	user := User{}
 	db.Where("name = ?", login).Find(&user)
 	if user.ID == 0 {
@@ -114,9 +69,6 @@ func CheckAgent(idUser int, idAgent int) bool {
 		panic(errors.New("db connection error"))
 	}
 	defer db.Close()
-	if err != nil {
-		log.Println(err)
-	}
 	agent := Agent{}
 	db.Where("agents.id = ? AND agents.user_id = ?", idAgent, idUser).Find(&agent)
 	return agent.ID != 0
@@ -131,9 +83,6 @@ func RegisterNewAgent(idAgent int, idUser int) error {
 		return errors.New("db connection error")
 	}
 	defer db.Close()
-	if err != nil {
-		log.Println(err)
-	}
 	agent := Agent{ID: idAgent, UserID: idUser}
 	rows := db.Create(&agent).RowsAffected
 	if !(rows == 1) {return errors.New("can not register an agent")} else{
@@ -151,9 +100,6 @@ func GetAllAgentsIDForClient(userID string) ([]string, error) {
 		return nil, errors.New("db connection error")
 	}
 	defer db.Close()
-	if err != nil {
-		log.Println(err)
-	}
 	userIDInt, err := strconv.Atoi(userID)
 	if err != nil {
 		return nil, errors.New("uncorrect id value")
@@ -183,9 +129,6 @@ func GetDefaultExplorationDate(productName string) (time.Time, error) {
 		return time.Time{}, errors.New("db connection error")
 	}
 	defer db.Close()
-	if err != nil {
-		log.Println(err)
-	}
 	product := Product{}
 	db.Where("name LIKE ?", productName).Find(&product)
 	return time.Now().Add(time.Hour * 24 * time.Duration(product.ShelfLife)), nil
@@ -199,9 +142,6 @@ func AllRecipes() ([]byte, error) {
 		return nil, errors.New("db connection error")
 	}
 	defer db.Close()
-	if err != nil {
-		log.Println(err)
-	}
 	recipes := []Recepie{}
 
 	db.Find(&recipes)
@@ -226,7 +166,7 @@ func AllRecipes() ([]byte, error) {
 			if err != nil {
 				return nil, errors.New("ingredients search error")
 			}
-			recipes[k].Ingred = append(recipes[k].Ingred, strconv.Itoa(amount)+unit+name+";")
+			recipes[k].Ingred = append(recipes[k].Ingred, strconv.Itoa(amount), unit, name, ";")
 		}
 	}
 	allRecipies, err := json.Marshal(recipes)
@@ -235,4 +175,148 @@ func AllRecipes() ([]byte, error) {
 	}
 	return allRecipies, nil
 }
+//Recipes(foodInfoSlice []FoodInfo) takes the slice of FoodInfo strucktures, representing all available products in all agents and return all recepies, which can be offered as a JSON
+func Recipes(foodInfoSlice []FoodInfo) ([]byte, error) {
+	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
+		dbUser, dbPassword, dbName)
+	db, err := gorm.Open("postgres", dbinfo)
+	if err != nil {
+		return nil, errors.New("db connection error")
+	}
+	defer db.Close()
+	productNameSlice := make([]string, 7)
+	for _, v := range foodInfoSlice {
+		productNameSlice = append(productNameSlice, strings.ToLower(v.Name))
+	}
+	recipes := []Recepie{}
+	db.Table("recepies").
+		Joins("FULL JOIN ingridients on ingridients.recipe_id = recepies.id").
+		Joins("JOIN products on ingridients.product_id = products.id").
+		Where("products.name IN (?)", productNameSlice).
+		Having("count(products.id) <= ?", 2).
+		Group("recepies.id").
+		Find(&recipes)
+	var name, unit string
+	var amount int
+	for k, v := range recipes {
+		rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
+			Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
+			Joins("JOIN products on ingridients.product_id = products.id").
+			Joins("JOIN m_units on m_units.id = products.units").
+			Where("recepies.id=?", v.ID).Rows()
+
+		if err != nil {
+			return nil, errors.New("recepies search error")
+		}
+
+		for rows.Next() {
+			rows.Scan(&amount, &unit, &name)
+			recipes[k].Ingred = append(recipes[k].Ingred, strconv.Itoa(amount), unit, name, ";")
+		}
+	}
+	allRecipies, err := json.Marshal(recipes)
+	if err != nil {
+		return nil, errors.New("marshaling error")
+	}
+	return allRecipies, nil
+}
+
+
+//CreteTables() can be used to create tables, needed for the project
+func CreteTables() error {
+	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
+		dbUser, dbPassword, dbName)
+	db, err := gorm.Open("postgres", dbinfo)
+	if err != nil {
+		return  errors.New("db connection error")
+	}
+	defer db.Close()
+	db.Exec("CREATE TABLE IF NOT EXISTS m_units (id INT primary KEY, unit VARCHAR (15));")
+
+	db.Exec("CREATE TABLE IF NOT EXISTS products (id INT primary KEY, name VARCHAR (15), shelf_life INT, units INT REFERENCES m_units(id));")
+
+	db.Exec("CREATE TABLE IF NOT EXISTS recepies (id INT primary KEY, name VARCHAR (15), description TEXT, coocking_time_min INT, complexity VARCHAR (15));")
+
+	db.Exec("CREATE TABLE IF NOT EXISTS ingridients (product_id INT REFERENCES products(id),	recipe_id INT REFERENCES recepies(id),	amount INT);")
+
+	db.Exec("CREATE TABLE IF NOT EXISTS users (id INT primary KEY, login VARCHAR (15), password VARCHAR (15));")
+
+	db.Exec("CREATE TABLE IF NOT EXISTS agents (id INT primary KEY, user_id INT REFERENCES users(id));")
+	return nil
+}
+
+//FillTables() puts some information to tables to work with
+func FillTables() error {
+	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
+		dbUser, dbPassword, dbName)
+	db, err := gorm.Open("postgres", dbinfo)
+	if err != nil {
+		return  errors.New("db connection error")
+	}
+	defer db.Close()
+
+	mu := MUnit{ID: 1, Unit: "gramm"}
+	db.Create(&mu)
+	mu = MUnit{ID: 2, Unit: "ml"}
+	db.Create(&mu)
+	mu = MUnit{ID: 3, Unit: "pieces"}
+	db.Create(&mu)
+
+	p := Product{ID: 1, Name: "tomato", ShelfLife: 15, Units: 1}
+	db.Create(&p)
+	p = Product{ID: 2, Name: "potato", ShelfLife: 30, Units: 1}
+	db.Create(&p)
+	p = Product{ID: 3, Name: "milk", ShelfLife: 2, Units: 2}
+	db.Create(&p)
+	p = Product{ID: 4, Name: "onion", ShelfLife: 30, Units: 1}
+	db.Create(&p)
+	p = Product{ID: 5, Name: "cucumber", ShelfLife: 7, Units: 1}
+	db.Create(&p)
+	p = Product{ID: 6, Name: "sausage", ShelfLife: 7, Units: 1}
+	db.Create(&p)
+	p = Product{ID: 7, Name: "butter", ShelfLife: 15, Units: 1}
+	db.Create(&p)
+	p = Product{ID: 8, Name: "egg", ShelfLife: 15, Units: 3}
+	db.Create(&p)
+	p = Product{ID: 9, Name: "meat", ShelfLife: 5, Units: 1}
+	db.Create(&p)
+	p = Product{ID: 10, Name: "chicken", ShelfLife: 7, Units: 1}
+	db.Create(&p)
+	p = Product{ID: 11, Name: "bread", ShelfLife: 7, Units: 1}
+	db.Create(&p)
+
+	r := Recepie{ID: 1, Name: "Salat", Description: "...", CoockingTimeMin: 15, Complexity: "easy"}
+	db.Create(&r)
+	r = Recepie{ID: 2, Name: "Sandwich", Description: "...", CoockingTimeMin: 5, Complexity: "easy"}
+	db.Create(&r)
+	r = Recepie{ID: 3, Name: "Soup", Description: "...", CoockingTimeMin: 35, Complexity: "easy"}
+	db.Create(&r)
+
+	i := Ingridient{RecipeID: 1, ProductID: 1, Amount: 300}
+	db.Create(&i)
+	i = Ingridient{RecipeID: 1, ProductID: 2, Amount: 600}
+	db.Create(&i)
+	i = Ingridient{RecipeID: 1, ProductID: 4, Amount: 300}
+	db.Create(&i)
+	i = Ingridient{RecipeID: 1, ProductID: 5, Amount: 100}
+	db.Create(&i)
+	i = Ingridient{RecipeID: 2, ProductID: 11, Amount: 50}
+	db.Create(&i)
+	i = Ingridient{RecipeID: 2, ProductID: 7, Amount: 50}
+	db.Create(&i)
+	i = Ingridient{RecipeID: 2, ProductID: 6, Amount: 50}
+	db.Create(&i)
+	i = Ingridient{RecipeID: 2, ProductID: 1, Amount: 20}
+	db.Create(&i)
+
+	u := User{ID: 1, Login: "login", Password: "password"}
+	db.Create(&u)
+
+	a := Agent{ID: 1, UserID: 1}
+	db.Create(&a)
+	a = Agent{ID: 2, UserID: 1}
+	db.Create(&a)
+	return nil
+}
+
 
