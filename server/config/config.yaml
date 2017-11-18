@@ -1,0 +1,10 @@
+serverConfig:
+  port: "9000"
+  host: "localhost"
+  readBufferSize: 1024
+  writeBufferSize: 1024
+
+mongoConfig:
+  uri: "mongodb://umbrella:Djkjlz007@smartfridge-shard-00-00-rxof9.mongodb.net:27017,smartfridge-shard-00-01-rxof9.mongodb.net:27017,smartfridge-shard-00-02-rxof9.mongodb.net:27017/admin?replicaSet=SmartFridge-shard-0"
+  database: "agent"
+  table:    "agent_info"
