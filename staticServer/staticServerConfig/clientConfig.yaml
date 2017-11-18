@@ -1,4 +1,4 @@
-port: ":5080"
+port: "5080"
 host: "localhost"
 serverAddress: "http://localhost:9000"
 staticFilesPath:
