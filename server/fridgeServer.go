@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/ASeegull/SmartFridge/server/config"
-	"github.com/ASeegull/SmartFridge/server/database"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,14 +19,13 @@ const (
 var serverConfig *config.ServerConfig
 var wg *sync.WaitGroup
 
-//SetWaitGroup sets WaitGroup
-func SetWaitGroup(waitGroup *sync.WaitGroup) {
-	wg = waitGroup
+//GetWaitGroup returns waitGroup
+func GetWaitGroup() *sync.WaitGroup {
+	return wg
 }
 
 //ReadConfig reads config from file
 func ReadConfig() {
-	var mongoDBConfig *config.MongoConfig
 	if err := config.ReadConfig(); err != nil {
 		serverConfig = &config.ServerConfig{
 			Port:            defaultPort,
@@ -36,14 +34,12 @@ func ReadConfig() {
 			WriteBufferSize: defaultWriteBufferSize,
 			WebsocketSleep:  defaultWebsocketSleep}
 
-		log.Println("cannot read config. Used default values")
+		log.Println("Cannot read config. Used default values")
 	} else {
-		mongoDBConfig = config.GetMongoConfig()
 		serverConfig = config.GetServerConfig()
 	}
 
 	setUpgrader()
-	database.InitiateMongoDB(mongoDBConfig)
 }
 
 // GetAddr sets host and port for server

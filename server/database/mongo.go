@@ -21,8 +21,9 @@ var session *mgo.Session
 var mongoConfig *config.MongoConfig
 
 //InitiateMongoDB sets config for mongoDB
-func InitiateMongoDB(inputConfig *config.MongoConfig) {
-	if inputConfig != nil {
+func InitiateMongoDB() error {
+	inputConfig := config.GetMongoConfig()
+	if inputConfig.URI != "" {
 		mongoConfig = inputConfig
 		log.Println("Used config value for mongoDB")
 	} else {
@@ -33,13 +34,19 @@ func InitiateMongoDB(inputConfig *config.MongoConfig) {
 
 		log.Println("Use default value for mongoDB")
 	}
-	createSession()
+	err := createSession()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	return nil
 }
 
-func createSession() {
+func createSession() error {
 	dialInfo, err := mgo.ParseURL(mongoConfig.URI)
 	if err != nil {
 		log.Error(err)
+		return err
 	}
 	tlsConfig := &tls.Config{}
 
@@ -51,7 +58,9 @@ func createSession() {
 	session, err = mgo.DialWithInfo(dialInfo)
 	if err != nil {
 		log.Error(err)
+		return err
 	}
+	return nil
 }
 
 //SaveState saves state from agent

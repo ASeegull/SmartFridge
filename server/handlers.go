@@ -4,9 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/ASeegull/SmartFridge/server/database"
 	"github.com/gorilla/websocket"
@@ -33,6 +31,7 @@ func agentAuthentication(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Print(err)
+		http.Error(w, err.Error(), 500)
 	}
 }
 
@@ -44,7 +43,7 @@ func createWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("New websocket connect with %s\n", r.Host)
+	log.Printf("New websocket connect with %s\n", r.Host)
 	wg.Add(1)
 	go wsListener(conn)
 }
@@ -53,10 +52,7 @@ func wsListener(conn *websocket.Conn) {
 	defer wg.Done()
 	defer conn.Close()
 
-	for {
-		time.Sleep(time.Second * serverConfig.WebsocketSleep)
-		//here will be reading info from websocket
-	}
+	//next executing will be after implementing agent and grpc protocol!)
 }
 
 type userID struct {
@@ -96,6 +92,7 @@ func getFoodInfo(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(foods)
 	if err != nil {
 		log.Print(err)
+		http.Error(w, err.Error(), 404)
 	}
 }
 
@@ -103,6 +100,7 @@ func getRecipes(w http.ResponseWriter, r *http.Request) {
 	err := json.NewEncoder(w).Encode("Here will be your recipes")
 	if err != nil {
 		log.Print(err)
+		http.Error(w, err.Error(), 404)
 	}
 }
 

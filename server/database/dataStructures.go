@@ -3,7 +3,7 @@ package database
 //FoodInfo is example struct for agent
 type FoodInfo struct {
 	Name   string `bson:"name"`
-	Veight int    `bson:"veight"`
+	Weight int    `bson:"weight"`
 	Date   string `bson:"date"`
 	Value  int    `bson:"value"`
 }
