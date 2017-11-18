@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/ASeegull/SmartFridge/examplePackage"
-	"fmt"
+	"github.com/ASeegull/SmartFridge/staticServer"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	fmt.Println(examplePackage.Func("client"))
+	addr := staticServer.Run()
+	log.WithField("host:port", addr).Info("Client server is listening on")
 }
