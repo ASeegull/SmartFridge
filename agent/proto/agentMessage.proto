@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package agentState;
+
+import "google/api/annotations.proto";
+
+// Regular message, that is sent on heartbeat
+message agentstate {
+    string agentID = 1;
+    string user = 2;
+    string product = 3;
+    string weight = 4;
+    string stateExpires = 5;
+}
+
+
+// Changes product of container
+message product {
+    string user = 1;
+    string agentID = 2;
+    string product = 3;
+}
+
+
+// Regiters user and agent
+message setup {
+    string user = 1;
+    string agentID = 2;
+    int32 heatrbeat = 3;
+}
+
+service agent {   
+    rpc GetState(product) returns (agentstate) {
+        option (google.api.http) = {
+            get: "/agent/getstate"
+        };
+    }
+}
+
+service settings {
+    rpc SetProduct(product) returns (setup) {
+        option (google.api.http) = {
+            post: "/agent/setproduct"
+            body: "*"
+        };
+    }
+
+    rpc SetUser(setup) returns (agentstate) {
+        option (google.api.http) = {
+            post: "/agent/setuser"
+            body: "*"
+        };
+    }
+}
