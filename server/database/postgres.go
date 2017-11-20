@@ -11,6 +11,8 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/satori/go.uuid"
+
+	"log"
 )
 
 const (
@@ -19,16 +21,21 @@ const (
 	dbPassword = ""
 	dbName     = "postgres"
 )
+var dbinfo = fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
+dbUser, dbPassword, dbName)
 
 //RegisterNewUser adds a new user, returns error if adding was not successful
 func RegisterNewUser(login string, passHash string) error {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		dbUser, dbPassword, dbName)
 	db, err := gorm.Open("postgres", dbinfo)
 	if err != nil {
-		return errors.New("db connection error")
+		return err
 	}
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 	user := User{}
 	db.Where("login = ?", login).Find(&user)
 	if user.ID != "" {
@@ -38,42 +45,47 @@ func RegisterNewUser(login string, passHash string) error {
 	user.Login = login
 	user.Password = passHash
 	rows := db.Create(&user).RowsAffected
-	if !(rows == int64(1)) {
+	if rows != int64(1) {
 		return errors.New("user not added")
-	} else {
-		return nil
 	}
+	return nil
 }
 
 //ClientLogin checks login and pass for client
 func ClientLogin(login string, pass string) error {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		dbUser, dbPassword, dbName)
 	db, err := gorm.Open("postgres", dbinfo)
 	if err != nil {
-		return errors.New("db connection error")
+		return err
 	}
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 	user := User{}
 	db.Where("login = ?", login).Find(&user)
-	if user.ID == "" {
+	switch {
+	case user.ID == "":
 		return errors.New("login not found")
-	} else if !(strings.TrimRight(pass, "\n") == user.Password) {
+	case strings.TrimRight(pass, "\n") != user.Password:
 		return errors.New("wrong password")
-	} else {
-		return nil
 	}
+		return nil
 }
 
 //CheckAgent checks agent registration, if agent is associated with a user returns true as first returning value
 func CheckAgent(idUser string, idAgent string) (bool, error) {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		dbUser, dbPassword, dbName)
 	db, err := gorm.Open("postgres", dbinfo)
 	if err != nil {
-		return false, errors.New("db connection error")
+		return false, err
 	}
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 	agent := Agent{}
 	db.Where("agents.id = ? AND agents.user_id = ?", idAgent, idUser).Find(&agent)
 	return agent.ID != "", nil
@@ -81,42 +93,48 @@ func CheckAgent(idUser string, idAgent string) (bool, error) {
 
 //RegisterNewAgent adds a new agent to user, returns nil if adding was successful
 func RegisterNewAgent(idUser string, idAgent string) error {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		dbUser, dbPassword, dbName)
 	db, err := gorm.Open("postgres", dbinfo)
 	if err != nil {
-		return errors.New("db connection error")
+		return err
 	}
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 	agent := Agent{ID: idAgent, UserID: idUser}
 	rows := db.Create(&agent).RowsAffected
 	if !(rows == 1) {
 		return errors.New("can not register an agent")
-	} else {
-		return nil
 	}
+		return nil
+
 }
 
 
 //GetAllAgentsIDForClient returns all agent for clientID as a sice of string
 func GetAllAgentsIDForClient(userID string) ([]string, error) {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		dbUser, dbPassword, dbName)
 	db, err := gorm.Open("postgres", dbinfo)
 	if err != nil {
-		return nil, errors.New("db connection error")
+		return nil, err
 	}
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 	var agentID string
 	agentIds := make([]string, 0, 7)
 	rows, err := db.Table("agents").Select("agents.id").Where("agents.user_id=?", userID).Rows()
 	if err != nil {
-		return nil, errors.New("database query error")
+		return nil, err
 	}
 	for rows.Next() {
 		err = rows.Scan(&agentID)
 		if err != nil {
-			return nil, errors.New("agents id reading error")
+			return nil, err
 		}
 		agentIds = append(agentIds, agentID)
 	}
@@ -125,31 +143,37 @@ func GetAllAgentsIDForClient(userID string) ([]string, error) {
 
 //GetDefaultExplorationDate function returns expiration date a product as time.Time object
 func GetDefaultExplorationDate(productName string) (time.Time, error) {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		dbUser, dbPassword, dbName)
 	db, err := gorm.Open("postgres", dbinfo)
 	if err != nil {
-		return time.Time{}, errors.New("db connection error")
+		return time.Time{}, err
 	}
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 	product := Product{}
-	db.Where("name LIKE ?", productName).First(&product)
+	db.Where("name LIKE ?", strings.ToLower(productName)).First(&product)
 	if product.Name == "" {
 		return time.Time{}, errors.New("product not found")
-	} else {
-		return time.Now().Add(time.Hour * 24 * time.Duration(product.ShelfLife)), nil
 	}
+	return time.Now().Add(time.Hour * 24 * time.Duration(product.ShelfLife)), nil
+
 }
 
 //AllRecipes functions returns all Recipes with ingridients as a JSON
 func AllRecipes() ([]byte, error) {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		dbUser, dbPassword, dbName)
 	db, err := gorm.Open("postgres", dbinfo)
 	if err != nil {
-		return nil, errors.New("db connection error")
+		return nil, err
 	}
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 	recipes := []Recepie{}
 	db.Find(&recipes)
 	var name, unit string
@@ -162,59 +186,60 @@ func AllRecipes() ([]byte, error) {
 			Where("recepies.id=?", v.ID).Rows()
 
 		if err != nil {
-			return nil, errors.New("recepies search error")
+			return nil, err
 		}
 
 		for rows.Next() {
 			err = rows.Scan(&amount, &unit, &name)
 			if err != nil {
-				return nil, errors.New("ingredients search error")
+				return nil, err
 			}
 			recipes[k].Ingred = append(recipes[k].Ingred, strconv.Itoa(amount), unit, name)
 		}
 	}
-
-	allRecipies, err := json.Marshal(recipes)
-	if err != nil {
-		return nil, errors.New("marshaling error")
-	}
-	return allRecipies, nil
+	return json.Marshal(recipes)
 }
 
 //GetAllProductsID returns a slice, containing IDs of all products
 func GetAllProductsID() ([]int, error) {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		dbUser, dbPassword, dbName)
 	db, err := gorm.Open("postgres", dbinfo)
 	if err != nil {
-		return nil, errors.New("db connection error")
+		return nil, err
 	}
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 	var productID int
 	productIDs := make([]int, 0, 100)
 	rows, err := db.Table("products").Select("products.id").Rows()
 	if err != nil {
-		return nil, errors.New("database query error")
+		return nil, err
 	}
 	for rows.Next() {
 		err = rows.Scan(&productID)
 		if err != nil {
-			return nil, errors.New("products id reading error")
+			return nil, err
 		}
 		productIDs = append(productIDs, productID)
 	}
 	return productIDs, nil
 }
 
-//Recipes(foodInfoSlice []FoodInfo) takes the slice of FoodInfo strucktures, representing all available products in all agents and return all recepies, which can be offered as a JSON
+//Recipes takes the slice of FoodInfo strucktures, representing all available products in all agents and return all recepies, which can be offered as a JSON
 func Recipes(foodInfoSlice []FoodInfo) ([]byte, error) {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		dbUser, dbPassword, dbName)
 	db, err := gorm.Open("postgres", dbinfo)
 	if err != nil {
-		return nil, errors.New("db connection error")
+		return nil, err
 	}
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 	productNameSlice := make([]string, 0, 7)
 	productMap := make(map[string]int)
 	for _, v := range foodInfoSlice {
@@ -239,10 +264,13 @@ OUTER:
 			Joins("JOIN m_units on m_units.id = products.units").
 			Where("recepies.id=?", recipes[k].ID).Rows()
 		if err != nil {
-			return nil, errors.New("recepies search error")
+			return nil, err
 		}
 		for rows.Next() {
-			rows.Scan(&amount, &unit, &name)
+			err := rows.Scan(&amount, &unit, &name)
+			if err != nil {
+				return nil, err
+			}
 			if contains(productNameSlice, name) && amount <= productMap[name] {
 				recipes[k].Ingred = append(recipes[k].Ingred, strconv.Itoa(amount), unit, name)
 			} else {
@@ -251,11 +279,7 @@ OUTER:
 			}
 		}
 	}
-	allRecipies, err := json.Marshal(recipes)
-	if err != nil {
-		return nil, errors.New("marshaling error")
-	}
-	return allRecipies, nil
+	return json.Marshal(recipes)
 }
 
 //contains shows if a slice contains given value
@@ -268,15 +292,18 @@ func contains(slice []string, v string) bool {
 	return false
 }
 
-//CreteTables() can be used to create tables, needed for the project
+//CreteTables can be used to create tables, needed for the project
 func CreteTables() error {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		dbUser, dbPassword, dbName)
 	db, err := gorm.Open("postgres", dbinfo)
 	if err != nil {
-		return errors.New("db connection error")
+		return err
 	}
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 	db.Exec("CREATE TABLE IF NOT EXISTS m_units (id INT primary KEY, unit VARCHAR (15));")
 
 	db.Exec("CREATE TABLE IF NOT EXISTS products (id INT primary KEY, name VARCHAR (15), shelf_life INT, units INT REFERENCES m_units(id));")
@@ -291,16 +318,18 @@ func CreteTables() error {
 	return nil
 }
 
-//FillTables() puts some information to tables to work with
+//FillTables puts some information to tables to work with
 func FillTables() error {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		dbUser, dbPassword, dbName)
 	db, err := gorm.Open("postgres", dbinfo)
 	if err != nil {
-		return errors.New("db connection error")
+		return err
 	}
-	defer db.Close()
-
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 	mu := MUnit{ID: 1, Unit: "gramm"}
 	db.Create(&mu)
 	mu = MUnit{ID: 2, Unit: "ml"}
