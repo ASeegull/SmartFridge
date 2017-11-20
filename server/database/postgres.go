@@ -166,7 +166,7 @@ func AllRecipes() ([]byte, error) {
 			if err != nil {
 				return nil, errors.New("ingredients search error")
 			}
-			recipes[k].Ingred = append(recipes[k].Ingred, strconv.Itoa(amount), unit, name, ";")
+			recipes[k].Ingred = append(recipes[k].Ingred, strconv.Itoa(amount), unit, name)
 		}
 	}
 	allRecipies, err := json.Marshal(recipes)
@@ -184,34 +184,40 @@ func Recipes(foodInfoSlice []FoodInfo) ([]byte, error) {
 		return nil, errors.New("db connection error")
 	}
 	defer db.Close()
-	productNameSlice := make([]string, 7)
+	productNameSlice := make([]string, 0)
+	productMap := make(map[string]int)
 	for _, v := range foodInfoSlice {
 		productNameSlice = append(productNameSlice, strings.ToLower(v.Name))
+		productMap[strings.ToLower(v.Name)] = v.Weight
 	}
 	recipes := []Recepie{}
 	db.Table("recepies").
 		Joins("FULL JOIN ingridients on ingridients.recipe_id = recepies.id").
 		Joins("JOIN products on ingridients.product_id = products.id").
 		Where("products.name IN (?)", productNameSlice).
-		Having("count(products.id) <= ?", 2).
+		Having("count(products.id) <= ?", len(productNameSlice)).
 		Group("recepies.id").
 		Find(&recipes)
 	var name, unit string
 	var amount int
-	for k, v := range recipes {
-		rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
+OUTER:
+	for k := len(recipes) - 1; k >= 0; k-- {
+		rows, _ := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
 			Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
 			Joins("JOIN products on ingridients.product_id = products.id").
 			Joins("JOIN m_units on m_units.id = products.units").
-			Where("recepies.id=?", v.ID).Rows()
-
+			Where("recepies.id=?", recipes[k].ID).Rows()
 		if err != nil {
 			return nil, errors.New("recepies search error")
 		}
-
 		for rows.Next() {
 			rows.Scan(&amount, &unit, &name)
-			recipes[k].Ingred = append(recipes[k].Ingred, strconv.Itoa(amount), unit, name, ";")
+			if contains(productNameSlice, name) && amount <= productMap[name] {
+				recipes[k].Ingred = append(recipes[k].Ingred, strconv.Itoa(amount), unit, name)
+			} else {
+				recipes = append(recipes[:k], recipes[k+1:]...)
+				continue OUTER
+			}
 		}
 	}
 	allRecipies, err := json.Marshal(recipes)
@@ -220,7 +226,15 @@ func Recipes(foodInfoSlice []FoodInfo) ([]byte, error) {
 	}
 	return allRecipies, nil
 }
-
+//contains shows if a slice contains given value
+func contains(slice []string, v string) bool {
+	for _, a := range slice {
+		if a == v {
+			return true
+		}
+	}
+	return false
+}
 
 //CreteTables() can be used to create tables, needed for the project
 func CreteTables() error {
