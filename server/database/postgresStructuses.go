@@ -30,7 +30,7 @@ type Recepie struct {
 	Description     string		`json:"description"`
 	CoockingTimeMin int			`json:"coockingTimeMin"`
 	Complexity      string		`json:"complexity"`
-	Ingred          []string	`json:"ingred"`
+	Ingred          []string	`gorm:"-" json:"ingred"`
 }
 //User represents a user
 type User struct {
