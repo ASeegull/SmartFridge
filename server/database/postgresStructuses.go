@@ -1,5 +1,6 @@
 package database
 
+
 //MUnit represents units of measure used for products
 type MUnit struct {
 	ID   int
