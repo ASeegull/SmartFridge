@@ -2,11 +2,12 @@ package database
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
-	"errors"
+
 	"github.com/jinzhu/gorm"
 
 	_ "github.com/lib/pq"
@@ -17,12 +18,15 @@ import (
 
 const (
 	//postgres connection credentials
+	dbhost     = "localhost"
+	dbport     = 5432
 	dbUser     = "postgres"
 	dbPassword = ""
 	dbName     = "postgres"
 )
-var dbinfo = fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-dbUser, dbPassword, dbName)
+
+var dbinfo = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+	dbhost, dbport, dbUser, dbPassword, dbName)
 
 //RegisterNewUser adds a new user, returns error if adding was not successful
 func RegisterNewUser(login string, passHash string) error {
@@ -71,7 +75,7 @@ func ClientLogin(login string, pass string) error {
 	case strings.TrimRight(pass, "\n") != user.Password:
 		return errors.New("wrong password")
 	}
-		return nil
+	return nil
 }
 
 //CheckAgent checks agent registration, if agent is associated with a user returns true as first returning value
@@ -108,10 +112,9 @@ func RegisterNewAgent(idUser string, idAgent string) error {
 	if !(rows == 1) {
 		return errors.New("can not register an agent")
 	}
-		return nil
+	return nil
 
 }
-
 
 //GetAllAgentsIDForClient returns all agent for clientID as a sice of string
 func GetAllAgentsIDForClient(userID string) ([]string, error) {
@@ -393,5 +396,3 @@ func FillTables() error {
 	db.Create(&a)
 	return nil
 }
-
-
