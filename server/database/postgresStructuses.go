@@ -30,7 +30,7 @@ type Product struct {
 //Recepie represents a recepie
 type Recepie struct {
 	ID              int      `json:"id"`
-	Name            string   `json:"name"`
+	RecName         string   `json:"recName"`
 	Description     string   `json:"description"`
 	CoockingTimeMin int      `json:"coockingTimeMin"`
 	Complexity      string   `json:"complexity"`
@@ -42,5 +42,5 @@ type User struct {
 	ID       string
 	Login    string
 	Password string
+	Role     string
 }
-
