@@ -2,9 +2,7 @@ package config
 
 import (
 	"io/ioutil"
-	"time"
 
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -23,41 +21,36 @@ type MongoConfig struct {
 
 //ServerConfig includes config for server
 type ServerConfig struct {
-	Port            string        `yaml:"port"`
-	Host            string        `yaml:"host"`
-	ReadBufferSize  int           `yaml:"readBufferSize"`
-	WriteBufferSize int           `yaml:"writeBufferSize"`
-	WebsocketSleep  time.Duration `yaml:"websocketSleep"`
+	Port            string `yaml:"port"`
+	Host            string `yaml:"host"`
+	ReadBufferSize  int    `yaml:"readBufferSize"`
+	WriteBufferSize int    `yaml:"writeBufferSize"`
 }
 
 const (
-	serverConfigPath = "../SmartFridge/server/config/config.yaml"
+	serverConfigPath = "./config.yaml"
 )
 
-var config *Config
-
 //ReadConfig reads config from file
-func ReadConfig() error {
-	config = &Config{}
+func ReadConfig() (*Config, error) {
+	config := &Config{}
 	yamlFile, err := ioutil.ReadFile(serverConfigPath)
 	if err != nil {
-		log.Error(err)
-		return err
+		return nil, err
 	}
 	err = yaml.Unmarshal(yamlFile, config)
 	if err != nil {
-		log.Error(err)
-		return err
+		return nil, err
 	}
-	return nil
+	return config, nil
 }
 
 //GetServerConfig returns server config
-func GetServerConfig() *ServerConfig {
-	return &config.Server
+func (c *Config) GetServerConfig() *ServerConfig {
+	return &c.Server
 }
 
 //GetMongoConfig returns mongoDB config
-func GetMongoConfig() *MongoConfig {
-	return &config.Mongo
+func (c *Config) GetMongoConfig() *MongoConfig {
+	return &c.Mongo
 }
