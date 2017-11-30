@@ -9,7 +9,8 @@ import (
 const (
 	// Path to yaml file, used for postgres db configuration
 	cfgPath = "./postgresConfig.yaml"
-	//postgres connection credentials
+
+	//default postgres connection credentials
 	defaultdbhost     = "localhost"
 	defaultdbport     = "5432"
 	defaultdbUser     = "goproject"
