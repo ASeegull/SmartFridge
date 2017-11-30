@@ -2,12 +2,57 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>BigBrainFridge</title>
     <link rel="stylesheet" href="static/styles.css" type="text/css" />
 </head>
 <body>
+    <header>
+        <nav>
+            <div class="logo">
+                <h1><a href='/'>Smartfridge</a></h1>
+            </div>
+            <div class="auth">
+                <div class="btn-nav" data-modal="login"><span>Login</span></div>
+                <div class="btn-nav" data-modal="signup"><span>Signup</span></div>
+            </div>
+        </nav>
+    </header>
 <div class="button button__fridgeContents" id="getContents"><span>My fridge</span></div>
 <div class="button button__cookbook" id="getRecipes"><span>Cookbook</span></div>
+<div class="modal modal-hidden" id="login">
+    <div class="modal-content">
+        <header>
+            <h1>Login</h1>
+            <div class="closeBtn" data-modal="login">&times;</div>
+        </header>
+        <form method="post" action="/login">
+            <label for="name">User name</label>
+            <input type="text" id="name" name="name">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password">
+            <button class="submit" type="submit">Login</button>
+        </form>
+    </div>
+</div>
+<div class="modal modal-hidden" id="signup">
+    <div class="modal-content">
+        <header>
+            <h1>Signup</h1>
+            <div class="closeBtn" data-modal="signup">&times;</div>
+        </header>
+        <form method="post" action="/signup">
+            <label for="name">User name</label>
+            <input type="text" id="name" name="name">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password">
+            <label for="passwordconfirm">Confirm password</label>
+            <input type="password" id="password" name="passwordconfirm">
+            <button class="submit" type="submit">Signup</button>
+        </form>
+    </div>
+</div>
 <script src="static/main.js"></script>
 </body>
 </html>

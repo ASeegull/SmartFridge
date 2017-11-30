@@ -42,5 +42,37 @@
     function getRecipes() {
         let jsn = fetchData('/cookbook');
     }
-})();
 
+    const modal = {
+        "signup": document.getElementById('signup'),
+        "login": document.getElementById('login')
+    }
+
+    let closeBtn = document.querySelectorAll('.closeBtn');
+    closeBtn.forEach(btn => btn.addEventListener('click', closeModal));
+
+    let modalBtn = document.querySelectorAll('.btn-nav');
+    modalBtn.forEach(btn => btn.addEventListener('click', openModal));
+
+    document.addEventListener('click', clickOutside);
+
+    function openModal(e) {
+        let query = e.currentTarget.dataset.modal;
+        let show = modal[query];
+        show.classList.remove('modal-hidden');
+        show.classList.add('modal-show');
+    }
+
+    function closeModal(e) {
+        let query = e.currentTarget.dataset.modal;
+        let hide = modal[query];
+        hide.classList.remove('modal-show');
+        hide.classList.add('modal-hidden');
+    }
+
+    function clickOutside(e) {
+        if (e.target == modal) {
+            closeModal();
+        }  
+    }
+})();

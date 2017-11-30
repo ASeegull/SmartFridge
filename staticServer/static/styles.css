@@ -5,6 +5,61 @@ html {
     font-family: "Verdana", sans-serif;
 }
 
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+header {
+    width: 100%;
+    height: 10vh;
+    background-color: darkslategrey;
+    color: white;
+}
+
+nav {
+    height: 100%;
+    width: 80%;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.auth, .user {
+    display: flex;
+    justify-content: space-between;
+    width: 20%;
+}
+
+.btn-nav {
+    border: 2px solid #fff;
+    border-radius: 15px;
+    width: 7rem;
+    height: 2rem;
+    display: flex;
+    justify-content: center;
+}
+
+.btn-nav > span {
+    align-self: center;
+    font-weight: bold;
+    padding: 0 0.5rem;
+}
+
+.btn-nav:hover {
+    background-color: #fff;
+    color: darkslategrey;
+    cursor: pointer;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+
 .button {
     position: absolute;
     left: 50%;
@@ -30,11 +85,93 @@ html {
 }
 
 .button__fridgeContents {
-    bottom: 30%;
+    bottom: 25%;
     transform: translate(-50%, -30%);
 }
 
 .button__cookbook {
     bottom: 15%;
     transform: translate(-50%, -15%);
+}
+
+.modal {
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 100%;
+    overflow: auto;
+    background-color:rgba(15, 27, 27, 0.75);
+}
+
+.modal-hidden {
+    display: none;
+}
+
+.modal-show {
+    display: block;
+}
+
+.modal-content {
+    background-color: #eaeef3;
+    position: fixed;
+    padding: 2rem;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    box-shadow: 0 5px 8px 0px rgba(0, 0, 0, 0.2), 0 7px 20px 0px rgba(0, 0, 0, 0.17);
+    animation-name: modalopen;
+    animation-duration: 1s;
+}
+
+form > input {
+    display: block;
+    width: 100%;
+}
+
+form > * {
+    margin-bottom: 1rem;
+}
+
+.submit {
+    float: right;
+    margin-top: 0.5rem;
+    border-radius: 15px;
+    outline: none;
+    border: 2px solid #457d7d;
+    width: 7rem;
+    height: 2rem;
+    cursor: pointer;
+}
+
+.submit:hover {
+    border-color: darkslategrey;
+    background-color: darkslategrey;
+    color: white;
+}
+
+.modal-content > header {
+    height: 8vh;
+    display: flex;
+    justify-content: space-between;
+    background-color: inherit;
+    color: inherit;
+}
+
+.closeBtn {
+    color: #ccc;
+    float: right;
+    font-size: 30px;
+}
+
+.closeBtn:hover, .closeBtn:focus {
+    color: darkslategrey;
+    text-decoration: none;
+    cursor: pointer;
+}
+@keyframes modalopen {  
+    from { opacity: 0 }
+    to   { opacity: 1 }
 }
