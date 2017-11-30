@@ -1,4 +1,4 @@
-package database
+package config
 
 import (
 	"io/ioutil"
@@ -8,7 +8,7 @@ import (
 
 const (
 	// Path to yaml file, used for postgres db configuration
-	cfgPath = "./postgresConfig.yaml"
+	cfgPath = "./config.yaml"
 
 	//default postgres connection credentials
 	defaultdbhost     = "localhost"
