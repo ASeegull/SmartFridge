@@ -1,0 +1,11 @@
+package: github.com/ASeegull2/serverLogIn
+import:
+- package: github.com/ASeegull2/SmartFridge
+  subpackages:
+  - serverLogIn
+- package: github.com/ASeegull2/fridge
+  subpackages:
+  - SmartFridge-server_db_1/server/database
+- package: github.com/gorilla/mux
+- package: github.com/gorilla/securecookie
+- package: github.com/gorilla/sessions
