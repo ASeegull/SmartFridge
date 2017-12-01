@@ -1,25 +1,28 @@
 package main
 
 import (
-
 	"net/http"
 
 
 	"github.com/gorilla/mux"
-	"github.com/ASeegull2/SmartFridge/serverLogIn"
+	"github.com/ASeegull2/serverLogIn/SmartFridgeAuthorization/serverLogIn"
 )
 
 
-var router = mux.NewRouter()
 
 func main() {
+	var router = mux.NewRouter()
+
 
 	router.HandleFunc("/", serverLogIn.IndexPageHandler)
-	router.HandleFunc("/register", serverLogIn.IndexPageTwoHandler)
+
+	router.HandleFunc("/signup", serverLogIn.IndexPageTwoHandler)
+
 	router.HandleFunc("/internal", serverLogIn.InternalPageHandler)
 
 
-	router.HandleFunc("/signup", serverLogIn.SignUpHandler).Methods("POST")
+
+	router.HandleFunc("/register", serverLogIn.SignUpHandler).Methods("POST")
 	router.HandleFunc("/login", serverLogIn.LoginHandler).Methods("POST")
 	router.HandleFunc("/logout", serverLogIn.LogoutHandler).Methods("POST")
 
