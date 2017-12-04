@@ -1,4 +1,4 @@
-package handlers
+package staticServer
 
 import (
 	"io/ioutil"
@@ -8,7 +8,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var server = config.GetServerAddr()
+var server = config.GetDynamicServer()
+var httpsAddr = config.GetHTTPSAddr()
+
+func redirect(w http.ResponseWriter, req *http.Request) {
+	target := "https://" + httpsAddr + req.URL.String()
+
+	if len(req.URL.RawQuery) > 0 {
+		target += "?" + req.URL.RawQuery
+	}
+	log.Printf("redirect to: %s", target)
+	http.Redirect(w, req, target, http.StatusPermanentRedirect)
+}
 
 func Fetch(query string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {

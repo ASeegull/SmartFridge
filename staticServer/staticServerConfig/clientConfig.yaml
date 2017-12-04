@@ -1,5 +1,14 @@
-port: "5080"
+HTTPport: "5081"
 host: "localhost"
+
+HTTPSport: "5080"
+cert: "../../staticServer/staticServerConfig/cert.pem"
+key: "../../staticServer/staticServerConfig/key.pem"
+
+# hashkey:
+# blockkey: 
+
+staticFilesPath: "../../staticServer/static"
+pathPrefix: "/static/"
+
 serverAddress: "http://localhost:9000"
-staticFilesPath:
-pathPrefix:

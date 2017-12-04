@@ -42,13 +42,15 @@
             <h1>Signup</h1>
             <div class="closeBtn" data-modal="signup">&times;</div>
         </header>
-        <form method="post" action="/signup">
+        <form id="signup">
             <label for="name">User name</label>
             <input type="text" id="name" name="name">
             <label for="password">Password</label>
             <input type="password" id="password" name="password">
             <label for="passwordconfirm">Confirm password</label>
             <input type="password" id="password" name="passwordconfirm">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email">
             <button class="submit" type="submit">Signup</button>
         </form>
     </div>

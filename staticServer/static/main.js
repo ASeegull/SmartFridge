@@ -75,4 +75,31 @@
             closeModal();
         }  
     }
+
+
+    const signUpForm = document.getElementById('signup');
+    
+    signUpForm.addEventListener('submit', submit)
+    
+    function submit(e) {
+        e.preventDefault();
+
+        let userdata = [];
+        let fields = signUpForm.querySelectorAll('input');
+        console.log(fields);
+        fields.forEach(field => userdata.push(field.value))
+        let data = {
+            name: userdata[0], 
+            password: userdata[1],
+            email: userdata[3]
+        }
+
+        console.log(data);
+        fetch("/signup", {
+            method: 'post',
+            body: JSON.stringify(data)
+          }).then(res => window.location.href = res.url)
+            .catch(err => console.log(err))
+    }
 })();
+

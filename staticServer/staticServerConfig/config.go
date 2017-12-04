@@ -2,96 +2,89 @@ package staticServerConfig
 
 import (
 	"io/ioutil"
-	"os"
 
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+
+	"github.com/davecheney/errors"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // Path to yaml file, used for server configuration
 const (
-	CfgPath           = "../../staticServer/staticServerConfig/clientConfig.yaml"
-	DefaultPort       = "5080"
-	DefaultStaticPath = "../../staticServer/static"
-	DefaultPrefix     = "/static/"
-	DefaultServerAddr = "http://localhost:9000"
+	CfgPath = "../../staticServer/staticServerConfig/clientConfig.yaml"
 )
+
+var config *Config
+
+func init() {
+	// cfgPath := flag.String("config", "../../staticServer/staticServerConfig/clientConfig.yaml", "Relative path to config file")
+	// flag.Parse()
+	var err error
+	config, err = getSettings(CfgPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 // Config structs yaml configuration
 type Config struct {
-	Port            string `yaml:"port"`
-	Host            string `yaml:"localhost"`
-	StaticFilesPath string `yaml:"staticFilesPath"`
-	Prefix          string `yaml:"pathPrefix"`
-	DynamicServer   string `yaml:"dynamicServerAddress"`
+	HTTPcfg       `yaml:",inline"`
+	HTTPScfg      `yaml:",inline"`
+	Static        `yaml:",inline"`
+	ServerAddress string `yaml:"serverAddress"`
+	Host          string `yaml:"host"`
 }
 
-var serverConfig *Config
+type HTTPcfg struct {
+	HTTPPort string `yaml:"HTTPport"`
+}
 
-func init() {
-	serverConfig = GetSettings(CfgPath)
-	serverConfig.setPath()
-	serverConfig.setPort()
-	serverConfig.setDynamicServer()
+type HTTPScfg struct {
+	HTTPSPort string `yaml:"HTTPSport"`
+	Cert      string `yaml:"cert"`
+	Key       string `yaml:"key"`
+}
+
+type Static struct {
+	Path   string `yaml:"staticFilesPath"`
+	Prefix string `yaml:"pathPrefix"`
 }
 
 // GetSettings reads configuration file and stores values to struct variable
-func GetSettings(cfgPath string) *Config {
-	c := new(Config)
-	cfg, err := ioutil.ReadFile(cfgPath)
+func getSettings(cfgPath string) (*Config, error) {
+	read, err := ioutil.ReadFile(cfgPath)
+
 	if err != nil {
-		log.Errorf("Failed to read config file %v", err)
-		return c
+		return nil, errors.Annotate(err, "Failed to read config file")
 	}
-	err = yaml.Unmarshal(cfg, c)
-	if err != nil {
-		log.Errorf("Failed to read config file %v", err)
+
+	cfg := &Config{}
+	if err = yaml.Unmarshal(read, &cfg); err != nil {
+		return nil, errors.Annotate(err, "Failed to read config file %v")
 	}
-	return c
+	return cfg, err
 }
 
-// GetAddr sets port for dev or production
-func (cfg *Config) setPort() {
-	// Checks if system sets port (like on Heroku)
-	port := os.Getenv("PORT")
-	if port != "" {
-		cfg.Port = port
-		return
-	}
-	// Sets port to default when none specified
-	if port == "" && cfg.Port == "" {
-		cfg.Port = DefaultPort
-	}
+func GetStaticFilesPath() *Static {
+	return &config.Static
 }
 
-// setPath sets path to static files to default values if none specified in configuration file
-func (cfg *Config) setPath() {
-	if cfg.StaticFilesPath == "" {
-		cfg.StaticFilesPath = DefaultStaticPath
-	}
-
-	if cfg.Prefix == "" {
-		cfg.Prefix = DefaultPrefix
-	}
+func GetStaticHTTPScfg() *HTTPScfg {
+	return &config.HTTPScfg
 }
 
-func (cfg *Config) setDynamicServer() {
-	if cfg.DynamicServer == "" {
-		cfg.DynamicServer = DefaultServerAddr
-	}
+func GetDynamicServer() string {
+	return config.ServerAddress
 }
 
-// GetAddr returns address to listen on
-func GetAddr() string {
-	return serverConfig.Host + ":" + serverConfig.Port
+func GetHTTPAddr() string {
+	return config.Host + ":" + config.HTTPcfg.HTTPPort
 }
 
-// GetStaticPath returns location of static Files
-func GetStaticPath() (path, prefix string) {
-	return serverConfig.StaticFilesPath, serverConfig.Prefix
+func GetHTTPSAddr() string {
+	return config.Host + ":" + config.HTTPScfg.HTTPSPort
 }
 
-// GetServerAddr returns address of main server
-func GetServerAddr() string {
-	return serverConfig.DynamicServer
+func GetPem() (string, string) {
+	return config.HTTPScfg.Cert, config.HTTPScfg.Key
 }
