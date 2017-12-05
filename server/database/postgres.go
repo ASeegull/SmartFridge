@@ -245,7 +245,7 @@ func GetAllProductsNames() ([]string, error) {
 		}
 	}()
 	var productName string
-	productIDs := make([]string, 0, prognosedNumOfProducts)
+	productNames := make([]string, 0, prognosedNumOfProducts)
 	rows, err := db.Table("products").Select("products.name").Rows()
 	if err != nil {
 		return nil, err
@@ -255,9 +255,9 @@ func GetAllProductsNames() ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		productIDs = append(productIDs, productName)
+		productNames = append(productNames, productName)
 	}
-	return productIDs, nil
+	return productNames, nil
 }
 
 //Recipes takes the slice of FoodInfo strucktures, representing all available products in all agents and return all recepies, which can be offered

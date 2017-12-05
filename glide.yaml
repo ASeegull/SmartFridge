@@ -1,6 +1,17 @@
 package: github.com/ASeegull/SmartFridge
 import:
+- package: github.com/davecheney/errors
+- package: github.com/golang/protobuf
+  subpackages:
+  - proto
+- package: github.com/gorilla/mux
+- package: github.com/gorilla/websocket
 - package: github.com/jinzhu/gorm
+- package: github.com/kabukky/httpscerts
 - package: github.com/lib/pq
 - package: github.com/satori/go.uuid
+- package: github.com/sirupsen/logrus
+- package: gopkg.in/mgo.v2
+  subpackages:
+  - bson
 - package: gopkg.in/yaml.v2

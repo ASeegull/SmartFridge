@@ -54,3 +54,13 @@ func ReadConfig() (*Config, error) {
 	}
 	return config, nil
 }
+
+////GetServerConfig returns server config
+//func (c *Config) GetServerConfig() *ServerConfig {
+//	return &c.Server
+//}
+//
+////GetMongoConfig returns mongoDB config
+//func (c *Config) GetMongoConfig() *MongoConfig {
+//	return &c.Mongo
+//}
