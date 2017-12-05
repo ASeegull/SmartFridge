@@ -1,13 +1,13 @@
 package database
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/ASeegull/SmartFridge/server/config"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/satori/go.uuid"
@@ -21,10 +21,17 @@ const (
 	avgNumrOfIngInRecepie  = 7
 	prognosedNumOfRecepies = 100
 	prognosedNumOfProducts = 100
+	avgNumOfAgentsOfUser   = 10
 )
 
-var dbinfo = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-	postgresConfig.Dbhost, postgresConfig.Dbport, postgresConfig.DbUser, postgresConfig.DbPassword, postgresConfig.DbName)
+var dbinfo string
+
+func InitPostgersDB(cfg config.PostgresConfigStr) error {
+	dbinfo = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		cfg.Dbhost, cfg.Dbport, cfg.DbUser, cfg.DbPassword, cfg.DbName)
+	return nil
+}
+
 var db *gorm.DB
 
 //RegisterNewUser adds a new user, returns error if adding was not successful
@@ -127,7 +134,7 @@ func RegisterNewAgent(idUser string, idAgent string) error {
 
 }
 
-//GetAllAgentsIDForClient returns all agent for clientID as a sice of string
+//GetAllAgentsIDForClient returns all agent for clientID as a slice of string
 func GetAllAgentsIDForClient(userID string) ([]string, error) {
 	var err error
 	db, err = gorm.Open("postgres", dbinfo)
@@ -141,7 +148,7 @@ func GetAllAgentsIDForClient(userID string) ([]string, error) {
 		}
 	}()
 	var agentID string
-	agentIds := make([]string, 0, avgNumrOfIngInRecepie)
+	agentIds := make([]string, 0, avgNumOfAgentsOfUser)
 	rows, err := db.Table("agents").Select("agents.id").Where("agents.user_id=?", userID).Rows()
 	if err != nil {
 		return nil, err
@@ -180,8 +187,8 @@ func GetDefaultExplorationDate(productName string) (time.Time, error) {
 	return time.Now().Add(time.Hour * 24 * time.Duration(product.ShelfLife)), nil
 }
 
-//AllRecipes functions returns all Recipes with ingridients as a JSON
-func AllRecipes() ([]byte, error) {
+//AllRecipes functions returns all Recipes with ingridients
+func AllRecipes() ([]Recepie, error) {
 	var err error
 	db, err = gorm.Open("postgres", dbinfo)
 	if err != nil {
@@ -220,11 +227,12 @@ func AllRecipes() ([]byte, error) {
 			recipes[k-1].Ingred = append(recipes[k-1].Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
 		}
 	}
-	return json.Marshal(recipes)
+
+	return recipes, nil
 }
 
-//GetAllProductsID returns a slice, containing IDs of all products
-func GetAllProductsID() ([]int, error) {
+//GetAllProductsNames returns a slice, containing IDs of all products
+func GetAllProductsNames() ([]string, error) {
 	var err error
 	db, err = gorm.Open("postgres", dbinfo)
 	if err != nil {
@@ -236,24 +244,24 @@ func GetAllProductsID() ([]int, error) {
 			log.Fatal(err)
 		}
 	}()
-	var productID int
-	productIDs := make([]int, 0, prognosedNumOfProducts)
-	rows, err := db.Table("products").Select("products.id").Rows()
+	var productName string
+	productIDs := make([]string, 0, prognosedNumOfProducts)
+	rows, err := db.Table("products").Select("products.name").Rows()
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
-		err = rows.Scan(&productID)
+		err = rows.Scan(&productName)
 		if err != nil {
 			return nil, err
 		}
-		productIDs = append(productIDs, productID)
+		productIDs = append(productIDs, productName)
 	}
 	return productIDs, nil
 }
 
-//Recipes takes the slice of FoodInfo strucktures, representing all available products in all agents and return all recepies, which can be offered as a JSON
-func Recipes(foodInfoSlice []FoodInfo) ([]byte, error) {
+//Recipes takes the slice of FoodInfo strucktures, representing all available products in all agents and return all recepies, which can be offered
+func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
 	var err error
 	db, err = gorm.Open("postgres", dbinfo)
 	if err != nil {
@@ -268,8 +276,8 @@ func Recipes(foodInfoSlice []FoodInfo) ([]byte, error) {
 	productNameSlice := make([]string, 0, avgNumrOfIngInRecepie)
 	productMap := make(map[string]int)
 	for _, v := range foodInfoSlice {
-		productNameSlice = append(productNameSlice, strings.ToLower(v.Name))
-		productMap[strings.ToLower(v.Name)] = v.Weight
+		productNameSlice = append(productNameSlice, strings.ToLower(v.Product))
+		productMap[strings.ToLower(v.Product)] = int(v.Weight)
 	}
 
 	recipes := []Recepie{}
@@ -311,7 +319,7 @@ OUTER:
 		}
 		copyRec = append(copyRec, recipe)
 	}
-	return json.Marshal(copyRec)
+	return copyRec, nil
 }
 
 //contains shows if a slice contains given value
