@@ -1,11 +1,17 @@
 package main
 
 import (
-	"fmt"
+	"log"
 
-	"github.com/ASeegull/SmartFridge/examplePackage"
+	"github.com/ASeegull/SmartFridge/agent"
 )
 
 func main() {
-	fmt.Println(examplePackage.Func("agent"))
+	cfg, err := agent.ReadConfig()
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	log.Fatal(agent.Start(cfg))
 }

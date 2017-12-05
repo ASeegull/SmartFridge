@@ -8,67 +8,46 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
+	pb "github.com/ASeegull/SmartFridge/protoStruct"
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	defaultURI      = "mongodb://umbrella:Djkjlz007@smartfridge-shard-00-00-rxof9.mongodb.net:27017,smartfridge-shard-00-01-rxof9.mongodb.net:27017,smartfridge-shard-00-02-rxof9.mongodb.net:27017/admin?replicaSet=SmartFridge-shard-0"
-	defaultDatabase = "agent"
-	defaultTable    = "agent_info"
-)
-
 var session *mgo.Session
-var mongoConfig *config.MongoConfig
+var mongoConfig config.MongoConfig
 
 //InitiateMongoDB sets config for mongoDB
-func InitiateMongoDB() error {
-	inputConfig := config.GetMongoConfig()
-	if inputConfig.URI != "" {
-		mongoConfig = inputConfig
-		log.Println("Used config value for mongoDB")
-	} else {
-		mongoConfig = &config.MongoConfig{
-			URI:      defaultURI,
-			Database: defaultDatabase,
-			Table:    defaultTable}
-
-		log.Println("Use default value for mongoDB")
-	}
-	err := createSession()
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	return nil
+func InitiateMongoDB(cfg config.MongoConfig) error {
+	mongoConfig = cfg
+	return createSession()
 }
 
 func createSession() error {
 	dialInfo, err := mgo.ParseURL(mongoConfig.URI)
 	if err != nil {
-		log.Error(err)
+		log.Debug(err)
 		return err
 	}
 	tlsConfig := &tls.Config{}
 
 	dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
-		conn, err := tls.Dial("tcp", addr.String(), tlsConfig)
-		return conn, err
+		return tls.Dial("tcp", addr.String(), tlsConfig)
 	}
 
 	session, err = mgo.DialWithInfo(dialInfo)
+	session.SetPoolLimit(100)
 	if err != nil {
-		log.Error(err)
+		log.Debug(err)
 		return err
 	}
 	return nil
 }
 
 //SaveState saves state from agent
-func SaveState(agentInfo *FoodAgent) error {
+func SaveState(agentInfo *pb.Agentstate) error {
 	c := session.DB(mongoConfig.Database).C(mongoConfig.Table)
 	err := c.Insert(&agentInfo)
 	if err != nil {
-		log.Error(err)
+		log.Debug(err)
 	}
 	return err
 }
@@ -78,16 +57,16 @@ func GetFoodsInFridge(containersID []string) ([]FoodInfo, error) {
 
 	c := session.DB(mongoConfig.Database).C(mongoConfig.Table)
 
-	var foods []FoodInfo
+	foods := make([]FoodInfo, 0, len(containersID))
 	for _, value := range containersID {
 		var agent FoodAgent
 
-		if err := c.Find(bson.M{"containerID": value}).One(&agent); err != nil {
-			log.Error(err)
+		if err := c.Find(bson.M{"agentid": value}).One(&agent); err != nil {
+			log.Println(err)
 			return nil, err
 		}
 
-		foods = append(foods, agent.FoodInfo)
+		foods = append(foods, FoodInfo{agent.Product, agent.Weight})
 	}
 	return foods, nil
 }

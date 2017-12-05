@@ -1,72 +1,56 @@
 package server
 
 import (
-	"sync"
+	"net/http"
 
 	"github.com/ASeegull/SmartFridge/server/config"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
+	"github.com/kabukky/httpscerts"
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	defaultPort            = "9000"
-	defaultHost            = "localhost"
-	defaultReadBufferSize  = 1024
-	defaultWriteBufferSize = 1024
-	defaultWebsocketSleep  = 2
-)
+var upgrader websocket.Upgrader
 
-var serverConfig *config.ServerConfig
-var wg *sync.WaitGroup
-
-//GetWaitGroup returns waitGroup
-func GetWaitGroup() *sync.WaitGroup {
-	return wg
-}
-
-//ReadConfig reads config from file
-func ReadConfig() {
-	if err := config.ReadConfig(); err != nil {
-		serverConfig = &config.ServerConfig{
-			Port:            defaultPort,
-			Host:            defaultHost,
-			ReadBufferSize:  defaultReadBufferSize,
-			WriteBufferSize: defaultWriteBufferSize,
-			WebsocketSleep:  defaultWebsocketSleep}
-
-		log.Println("Cannot read config. Used default values")
-	} else {
-		serverConfig = config.GetServerConfig()
+//Run starts server
+func Run(cfg config.ServerConfig) error {
+	upgrader = websocket.Upgrader{
+		ReadBufferSize:  cfg.ReadBufferSize,
+		WriteBufferSize: cfg.WriteBufferSize,
 	}
 
-	setUpgrader()
+	err := httpscerts.Check("cert.pem", "key.pem")
+	// If they are not available, generate new ones.
+	if err != nil {
+		err = httpscerts.Generate("cert.pem", "key.pem", "127.0.0.1:8081")
+		if err != nil {
+			log.Fatal("Error: Couldn't create https certs.")
+		}
+	}
+
+	log.Printf("Server started on %s:%s", cfg.Host, cfg.Port)
+	return http.ListenAndServeTLS(cfg.Host+":"+cfg.Port, "cert.pem", "key.pem", newRouter())
 }
 
-// GetAddr sets host and port for server
-func GetAddr() (string, string) {
-	return serverConfig.Host, serverConfig.Port
-}
-
-//NewRouter creates new gorilla router
-func NewRouter() *mux.Router {
+func newRouter() *mux.Router {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/agent", agentAuthentication).Methods("POST")
 	router.HandleFunc("/agent", createWS).Methods("GET")
 
-	s := router.PathPrefix("/client").Subrouter()
+	sub := router.PathPrefix("/client").Subrouter()
 
-	s.HandleFunc("/allRecipes", getRecipes).Methods("GET")
-	s.HandleFunc("/searchRecipes", searchRecipes).Methods("POST")
-	s.HandleFunc("/fridgeContent", getFoodInfo).Methods("POST")
+	sub.HandleFunc("/allRecipes", getRecipes).Methods("GET")
+	sub.HandleFunc("/searchRecipes", searchRecipes).Methods("GET")
+	sub.HandleFunc("/fridgeContent", getFoodInfo).Methods("GET")
 
-	s.HandleFunc("/addAgent", addAgent).Methods("POST")
-	s.HandleFunc("/removeAgent", removeAgent).Methods("POST")
-	s.HandleFunc("/updateAgent", updateAgent).Methods("POST")
+	sub.HandleFunc("/addAgent", addAgent).Methods("POST")
+	sub.HandleFunc("/removeAgent", removeAgent).Methods("DELETE")
+	sub.HandleFunc("/updateAgent", updateAgent).Methods("POST")
 
-	s.HandleFunc("/register", clientRegister).Methods("POST")
-	s.HandleFunc("/login", clientLogin).Methods("POST")
-	s.HandleFunc("/logout", clientLogout).Methods("POST")
+	sub.HandleFunc("/signup", clientRegister).Methods("POST")
+	sub.HandleFunc("/login", clientLogin).Methods("POST")
+	sub.HandleFunc("/logout", clientLogout).Methods("POST")
 
 	return router
 }

@@ -1,11 +1,9 @@
 package main
 
 import (
-	"fmt"
-
-	"github.com/ASeegull/SmartFridge/examplePackage"
+	"github.com/ASeegull/SmartFridge/staticServer"
 )
 
 func main() {
-	fmt.Println(examplePackage.Func("client"))
+	staticServer.Run()
 }
