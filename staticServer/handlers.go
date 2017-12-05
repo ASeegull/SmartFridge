@@ -4,26 +4,24 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	config "github.com/ASeegull/SmartFridge/staticServer/staticServerConfig"
 	log "github.com/sirupsen/logrus"
 )
 
-var server = config.GetDynamicServer()
-var httpsAddr = config.GetHTTPSAddr()
+func redirect(httpsAddr string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		target := "https://" + httpsAddr + req.URL.String()
 
-func redirect(w http.ResponseWriter, req *http.Request) {
-	target := "https://" + httpsAddr + req.URL.String()
-
-	if len(req.URL.RawQuery) > 0 {
-		target += "?" + req.URL.RawQuery
+		if len(req.URL.RawQuery) > 0 {
+			target += "?" + req.URL.RawQuery
+		}
+		log.Printf("redirect to: %s", target)
+		http.Redirect(w, req, target, http.StatusPermanentRedirect)
 	}
-	log.Printf("redirect to: %s", target)
-	http.Redirect(w, req, target, http.StatusPermanentRedirect)
 }
 
 func Fetch(query string) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		res, err := http.Get(server + query)
+	return func(w http.ResponseWriter, req *http.Request) {
+		res, err := http.Get(query)
 		if err != nil {
 			log.Errorf("Could not get response: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -1,0 +1,13 @@
+HTTPport: "5081"
+host: "localhost"
+
+HTTPSport: "5080"
+cert: "staticServer/config/files/cert.pem"
+key: "staticServer/config/files/key.pem"
+
+serverAddress: "http://localhost:9000"
+
+staticPatn: "dist"
+
+# hashkey:
+# blockkey: 

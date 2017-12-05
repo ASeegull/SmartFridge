@@ -1,12 +1,13 @@
 package staticServer
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"os"
 	"sync"
 
-	config "github.com/ASeegull/SmartFridge/staticServer/staticServerConfig"
+	config "github.com/ASeegull/SmartFridge/staticServer/config"
 	"github.com/davecheney/errors"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
@@ -19,15 +20,12 @@ const (
 	POST = http.MethodPost
 )
 
-var SIGN_KEY = []byte("secret")
-
 // newRouter сreates and returns gorilla router
-func newRouter() *mux.Router {
-	cfg := config.GetStaticFilesPath()
+func newRouter(staticPath string) *mux.Router {
 	r := mux.NewRouter()
-	r.Path("/").Handler(http.FileServer(http.Dir(cfg.Path)))
-	r.PathPrefix(cfg.Prefix).Handler(http.StripPrefix(cfg.Prefix, http.FileServer(http.Dir(cfg.Path))))
-	r.Path("/main").HandlerFunc(ServeInternal).Methods(GET)
+	staticDir := http.FileServer(http.Dir(staticPath))
+	r.Handle("/", staticDir)
+	r.PathPrefix("/{_:.*}").Handler(staticDir)
 	r.Path("/login").HandlerFunc(LoginHandler).Methods(POST)
 	r.Path("/signup").HandlerFunc(SignUpHandler).Methods(POST)
 	r.Path("/content").HandlerFunc(Fetch("/client/fridgeContent")).Methods(GET)
@@ -36,29 +34,42 @@ func newRouter() *mux.Router {
 }
 
 // Run starts servers for http and https connections
-func Run() {
+func Run(cfg *config.Config, ctx context.Context) {
+
 	var wg sync.WaitGroup
+
 	wg.Add(2)
 
-	var err error
-	r := newRouter()
+	r := newRouter(cfg.StaticPath)
+	port := os.Getenv("PORT")
+	switch {
+	case port != "":
+		log.WithField("port", port).Info("Server started")
+		log.Fatal(http.ListenAndServe(":"+port, r))
+	}
+
 	go func() {
-		addr := config.GetHTTPAddr()
+		addr := cfg.HTTPAddr()
 		log.WithField("address", addr).Info("HTTP Server started")
 
-		if err = http.ListenAndServe(addr, http.HandlerFunc(redirect)); err != nil {
+		if err := http.ListenAndServe(
+			addr, http.HandlerFunc(redirect(cfg.HTTPSAddr())),
+		); err != nil {
 			log.Fatal(errors.Annotate(err, "HTTP server crushed"))
 		}
 	}()
+
 	go func() {
-		cfg := config.GetStaticHTTPScfg()
-		addr := config.GetHTTPSAddr()
+		addr := cfg.HTTPSAddr()
 		log.WithField("address", addr).Info("HTTPS Server started")
 
-		if err = http.ListenAndServeTLS(addr, cfg.Cert, cfg.Key, r); err != nil {
+		if err := http.ListenAndServeTLS(
+			addr, cfg.Cert, cfg.Key, r,
+		); err != nil {
 			log.Fatal(errors.Annotate(err, "HTTPS server crushed"))
 		}
 	}()
+
 	wg.Wait()
 }
 
@@ -103,9 +114,4 @@ func LoginHandler(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte("Failed to read signup data"))
 		return
 	}
-}
-
-func ServeInternal(w http.ResponseWriter, req *http.Request) {
-	fmt.Print("tried to redirect")
-	http.ServeFile(w, req, "../../staticServer/static/views/main.html")
 }
