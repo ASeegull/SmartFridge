@@ -26,6 +26,9 @@ var db *gorm.DB
 //InitPostgersDB initiates connection to postgres gatabase
 func InitPostgersDB(cfg config.PostgresConfigStr) error {
 	var err error
+	if db != nil {
+		return nil
+	}
 	dbinfo = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		cfg.Dbhost, cfg.Dbport, cfg.DbUser, cfg.DbPassword, cfg.DbName)
 	db, err = gorm.Open("postgres", dbinfo)
