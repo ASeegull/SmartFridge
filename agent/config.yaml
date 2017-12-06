@@ -1,0 +1,4 @@
+host: "https://localhost"
+port: "9000"
+websocket: "wss://localhost"
+restURI: "/agent"
