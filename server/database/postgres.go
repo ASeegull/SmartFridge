@@ -14,8 +14,6 @@ import (
 )
 
 const (
-	//postgres connection credentials
-
 	avgNumrOfIngInRecepie  = 7
 	prognosedNumOfRecepies = 100
 	prognosedNumOfProducts = 100
@@ -165,7 +163,6 @@ func AllRecipes() ([]Recepie, error) {
 			recipes[k-1].Ingred = append(recipes[k-1].Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
 		}
 	}
-
 	return recipes, nil
 }
 
