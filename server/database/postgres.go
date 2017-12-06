@@ -18,15 +18,12 @@ const (
 	prognosedNumOfRecepies = 100
 	prognosedNumOfProducts = 100
 	avgNumOfAgentsOfUser   = 10
-
-	maxOpenedConnectionsToDb = 10
-	maxIdleConnectionsToDb   = 0
-	dbConnMaxLifetimeMinutes = 60
 )
 
 var dbinfo string
 var db *gorm.DB
 
+//InitPostgersDB initiates connection to postgres gatabase
 func InitPostgersDB(cfg config.PostgresConfigStr) error {
 	var err error
 	dbinfo = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -35,9 +32,9 @@ func InitPostgersDB(cfg config.PostgresConfigStr) error {
 	if err != nil {
 		return err
 	}
-	db.DB().SetMaxOpenConns(maxOpenedConnectionsToDb)
-	db.DB().SetMaxIdleConns(maxIdleConnectionsToDb)
-	db.DB().SetConnMaxLifetime(time.Minute * dbConnMaxLifetimeMinutes)
+	db.DB().SetMaxOpenConns(cfg.MaxOpenedConnectionsToDb)
+	db.DB().SetMaxIdleConns(cfg.MaxIdleConnectionsToDb)
+	db.DB().SetConnMaxLifetime(time.Minute * time.Duration(cfg.MbConnMaxLifetimeMinutes))
 	return nil
 }
 
