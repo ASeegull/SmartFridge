@@ -23,7 +23,7 @@ const (
 )
 
 func sendErrorMsg(w http.ResponseWriter, err error, status int) {
-	log.Debug(err)
+	log.Error(err)
 	http.Error(w, err.Error(), status)
 }
 
@@ -102,7 +102,7 @@ func wsListener(conn *websocket.Conn) {
 	defer func() {
 		if err != nil {
 			if err = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseInternalServerErr, err.Error())); err != nil {
-				log.Debug(err)
+				log.Error(err)
 			}
 		}
 	}()
@@ -113,36 +113,34 @@ func wsListener(conn *websocket.Conn) {
 
 		t, data, err = conn.ReadMessage()
 		if err != nil {
-			log.Printf("cannot read from websocket %v", err)
+			log.Errorf("cannot read from websocket %v", err)
 			return
 		}
 
 		if t == websocket.CloseNormalClosure {
-			log.Printf("closed ws connection with %s", conn.RemoteAddr())
+			log.Errorf("closed ws connection with %s", conn.RemoteAddr())
 			return
 		}
 
 		agentState := &pb.Agentstate{}
 
 		if err = agentState.UnmarshalToStruct(data); err != nil {
-			log.Printf("unmarshal data from websocket error: %v", err)
+			log.Errorf("unmarshal data from websocket error: %v", err)
 			return
 		}
 
 		if !agentState.CheckToken() {
-			err = errors.New("unauthorized agent detected")
-			log.Println(err)
+			log.Error(errors.New("unauthorized agent detected"))
 			return
 		}
 
 		if err = database.SaveState(agentState); err != nil {
-			err = errors.New("save to db problem: ")
-			log.Println(err)
+			log.Error(errors.New("save to db problem: "))
 			return
 		}
 
 		if err := conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("%s %s", time.Now().Format("2-Mon-Jan-2006-15:04:05"), "Ok!"))); err != nil {
-			log.Debug(err)
+			log.Error(err)
 			return
 		}
 	}
@@ -155,7 +153,7 @@ func getFoodInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := &database.UserID{adminID}
+	userID := &database.UserID{ID: adminID}
 
 	defer r.Body.Close()
 
