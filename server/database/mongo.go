@@ -47,7 +47,7 @@ func SaveState(agentInfo *pb.Agentstate) error {
 	c := session.DB(mongoConfig.Database).C(mongoConfig.Table)
 	err := c.Insert(&agentInfo)
 	if err != nil {
-		log.Debug(err)
+		log.Error(err)
 	}
 	return err
 }
@@ -62,7 +62,7 @@ func GetFoodsInFridge(containersID []string) ([]FoodInfo, error) {
 		var agent FoodAgent
 
 		if err := c.Find(bson.M{"agentid": value}).One(&agent); err != nil {
-			log.Println(err)
+			log.Error(err)
 			return nil, err
 		}
 
