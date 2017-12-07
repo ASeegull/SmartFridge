@@ -2,6 +2,7 @@ package database
 
 import (
 	"crypto/tls"
+	"errors"
 	"net"
 
 	"github.com/ASeegull/SmartFridge/server/config"
@@ -9,7 +10,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	pb "github.com/ASeegull/SmartFridge/protoStruct"
-	log "github.com/sirupsen/logrus"
 )
 
 var session *mgo.Session
@@ -18,14 +18,25 @@ var mongoConfig config.MongoConfig
 //InitiateMongoDB sets config for mongoDB
 func InitiateMongoDB(cfg config.MongoConfig) error {
 	mongoConfig = cfg
-	return createSession()
+
+	if session != nil {
+		return errors.New("session already exist")
+	}
+
+	var err error
+	session, err = createSession()
+	if err != nil {
+		return err
+	}
+
+	session.SetPoolLimit(mongoConfig.ConnectionsPool)
+	return err
 }
 
-func createSession() error {
+func createSession() (*mgo.Session, error) {
 	dialInfo, err := mgo.ParseURL(mongoConfig.URI)
 	if err != nil {
-		log.Debug(err)
-		return err
+		return nil, err
 	}
 	tlsConfig := &tls.Config{}
 
@@ -33,23 +44,12 @@ func createSession() error {
 		return tls.Dial("tcp", addr.String(), tlsConfig)
 	}
 
-	session, err = mgo.DialWithInfo(dialInfo)
-	session.SetPoolLimit(100)
-	if err != nil {
-		log.Debug(err)
-		return err
-	}
-	return nil
+	return mgo.DialWithInfo(dialInfo)
 }
 
 //SaveState saves state from agent
 func SaveState(agentInfo *pb.Agentstate) error {
-	c := session.DB(mongoConfig.Database).C(mongoConfig.Table)
-	err := c.Insert(&agentInfo)
-	if err != nil {
-		log.Error(err)
-	}
-	return err
+	return session.DB(mongoConfig.Database).C(mongoConfig.Table).Insert(&agentInfo)
 }
 
 //GetFoodsInFridge shows all food in a fridge
@@ -62,7 +62,6 @@ func GetFoodsInFridge(containersID []string) ([]FoodInfo, error) {
 		var agent FoodAgent
 
 		if err := c.Find(bson.M{"agentid": value}).One(&agent); err != nil {
-			log.Error(err)
 			return nil, err
 		}
 
