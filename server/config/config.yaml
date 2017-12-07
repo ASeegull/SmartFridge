@@ -16,4 +16,6 @@ postgresConfig:
   dbUser: "migsfgcy"
   dbPassword: "qLVBFGw_FL_IsZtjfIGK-clkEPnsRM_E"
   dbName: "migsfgcy"
-
+  maxOpenedConnectionsToDb: 10
+  maxIdleConnectionsToDb: 0
+  mbConnMaxLifetimeMinutes: 60

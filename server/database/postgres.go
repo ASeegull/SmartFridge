@@ -167,7 +167,7 @@ func AllRecipes() ([]Recepie, error) {
 }
 
 //GetAllProductsNames returns a slice, containing IDs of all products
-func GetAllProductsNames() ([]string, error) {
+func GetAllProductsName() ([]string, error) {
 	var err error
 	var productName string
 	productNames := make([]string, 0, prognosedNumOfProducts)
