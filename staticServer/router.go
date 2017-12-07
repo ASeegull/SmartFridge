@@ -2,7 +2,6 @@ package staticServer
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"os"
 	"sync"
@@ -10,14 +9,12 @@ import (
 	config "github.com/ASeegull/SmartFridge/staticServer/config"
 	"github.com/davecheney/errors"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
 	log "github.com/sirupsen/logrus"
 )
 
 // Saves http methods to constants with short names
 const (
-	GET  = http.MethodGet
-	POST = http.MethodPost
+	GET = http.MethodGet
 )
 
 // newRouter сreates and returns gorilla router
@@ -26,10 +23,6 @@ func newRouter(staticPath string) *mux.Router {
 	staticDir := http.FileServer(http.Dir(staticPath))
 	r.Handle("/", staticDir)
 	r.PathPrefix("/{_:.*}").Handler(staticDir)
-	r.Path("/login").HandlerFunc(LoginHandler).Methods(POST)
-	r.Path("/signup").HandlerFunc(SignUpHandler).Methods(POST)
-	r.Path("/content").HandlerFunc(Fetch("/client/fridgeContent")).Methods(GET)
-	r.Path("/recipes").HandlerFunc(Fetch("/client/allRecipes")).Methods(GET)
 	return r
 }
 
@@ -71,47 +64,4 @@ func Run(cfg *config.Config, ctx context.Context) {
 	}()
 
 	wg.Wait()
-}
-
-func createSecureCookie() *securecookie.SecureCookie {
-	hashKey, blockKey := []byte("very-secret"), []byte("a-lot-secret")
-	return securecookie.New(hashKey, blockKey)
-}
-
-type signup struct {
-	Name     string
-	Password string
-	Email    string
-}
-
-func SignUpHandler(w http.ResponseWriter, req *http.Request) {
-	signup := &signup{}
-
-	defer req.Body.Close()
-	decoder := json.NewDecoder(req.Body)
-	err := decoder.Decode(signup)
-	if err != nil {
-		log.Error(errors.Annotate(err, "Failed to read signup data"))
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Failed to read signup data"))
-		return
-	}
-
-	target := "/main"
-	log.Printf("redirect to: %s", target)
-	http.Redirect(w, req, target, http.StatusFound)
-}
-
-func LoginHandler(w http.ResponseWriter, req *http.Request) {
-	lg := &signup{}
-
-	defer req.Body.Close()
-	decoder := json.NewDecoder(req.Body)
-	err := decoder.Decode(lg)
-	if err != nil {
-		log.Error(errors.Annotate(err, "Failed to read signup data"))
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Failed to read signup data"))
-		return
-	}
 }

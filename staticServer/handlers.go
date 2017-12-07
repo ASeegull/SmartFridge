@@ -19,7 +19,7 @@ func redirect(httpsAddr string) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Fetch(query string) func(w http.ResponseWriter, r *http.Request) {
+func fetch(query string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		res, err := http.Get(query)
 		if err != nil {
