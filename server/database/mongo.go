@@ -25,11 +25,10 @@ func InitiateMongoDB(cfg config.MongoConfig) error {
 
 	var err error
 	session, err = createSession()
-	if err != nil {
-		return err
+	if err == nil {
+		session.SetPoolLimit(mongoConfig.ConnectionsPool)
 	}
 
-	session.SetPoolLimit(mongoConfig.ConnectionsPool)
 	return err
 }
 
