@@ -27,3 +27,7 @@ Icon
 
 # Windows
 Thumbs.db
+
+vendor/
+*.pem
+*.lock

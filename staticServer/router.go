@@ -56,7 +56,6 @@ func serve(wg sync.WaitGroup, cfg *config.Config, r *mux.Router) {
 
 	go func() {
 		defer wg.Done()
-		wg.Add(2)
 		addr := cfg.HTTPSAddr()
 		log.WithField("address", addr).Info("HTTPS Server started")
 

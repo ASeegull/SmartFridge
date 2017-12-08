@@ -162,6 +162,7 @@ func getFoodInfo(w http.ResponseWriter, r *http.Request) {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if err = json.NewEncoder(w).Encode(foods); err != nil {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
@@ -181,6 +182,7 @@ func getRecipes(w http.ResponseWriter, r *http.Request) {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if _, err = w.Write(data); err != nil {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
@@ -224,6 +226,7 @@ func clientLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -252,5 +255,6 @@ func clientRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
 }
