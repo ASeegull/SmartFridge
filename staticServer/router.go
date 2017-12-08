@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	config "github.com/ASeegull/SmartFridge/staticServer/config"
+	"github.com/ASeegull/SmartFridge/staticServer/config"
 	"github.com/davecheney/errors"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -25,6 +25,7 @@ func Run(cfg *config.Config) {
 
 	var wg sync.WaitGroup
 
+	wg.Add(2)
 	r := newRouter(cfg.StaticPath)
 	port := os.Getenv("PORT")
 	if port != "" {
@@ -43,7 +44,6 @@ func serve(wg sync.WaitGroup, cfg *config.Config, r *mux.Router) {
 
 	go func() {
 		defer wg.Done()
-		wg.Add(1)
 		addr := cfg.HTTPAddr()
 		log.WithField("address", addr).Info("HTTP Server started")
 
@@ -56,7 +56,7 @@ func serve(wg sync.WaitGroup, cfg *config.Config, r *mux.Router) {
 
 	go func() {
 		defer wg.Done()
-		wg.Add(1)
+		wg.Add(2)
 		addr := cfg.HTTPSAddr()
 		log.WithField("address", addr).Info("HTTPS Server started")
 

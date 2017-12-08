@@ -16,7 +16,6 @@ func main() {
 		"Location of config File",
 	)
 
-	log.Info(*cfgPath)
 	flag.Parse()
 	cfg, err := config.GetSettings(*cfgPath)
 	if err != nil {
