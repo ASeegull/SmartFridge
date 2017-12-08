@@ -25,14 +25,14 @@ func Run(cfg *config.Config) {
 
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-
 	r := newRouter(cfg.StaticPath)
 	port := os.Getenv("PORT")
 	if port != "" {
+		// production
 		log.WithField("port", port).Info("Server started")
 		log.Fatal(http.ListenAndServe(":"+port, r))
 	} else {
+		// dev
 		serve(wg, cfg, r)
 	}
 
@@ -40,7 +40,10 @@ func Run(cfg *config.Config) {
 }
 
 func serve(wg sync.WaitGroup, cfg *config.Config, r *mux.Router) {
+
 	go func() {
+		defer wg.Done()
+		wg.Add(1)
 		addr := cfg.HTTPAddr()
 		log.WithField("address", addr).Info("HTTP Server started")
 
@@ -49,11 +52,11 @@ func serve(wg sync.WaitGroup, cfg *config.Config, r *mux.Router) {
 		); err != nil {
 			log.Fatal(errors.Annotate(err, "HTTP server crushed"))
 		}
-
-		defer wg.Done()
 	}()
 
 	go func() {
+		defer wg.Done()
+		wg.Add(1)
 		addr := cfg.HTTPSAddr()
 		log.WithField("address", addr).Info("HTTPS Server started")
 
@@ -62,7 +65,5 @@ func serve(wg sync.WaitGroup, cfg *config.Config, r *mux.Router) {
 		); err != nil {
 			log.Fatal(errors.Annotate(err, "HTTPS server crushed"))
 		}
-
-		defer wg.Done()
 	}()
 }
