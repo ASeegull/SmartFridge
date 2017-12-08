@@ -224,6 +224,7 @@ func clientLogin(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	defer r.Body.Close()
 
 	if err := login.Unmarshalling(data); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -263,6 +264,7 @@ func clientRegister(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	defer r.Body.Close()
 
 	if err := login.Unmarshalling(data); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
