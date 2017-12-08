@@ -37,7 +37,7 @@ func createSession() (*mgo.Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	tlsConfig := &tls.Config{}
+	tlsConfig := &tls.Config{InsecureSkipVerify: true}
 
 	dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
 		return tls.Dial("tcp", addr.String(), tlsConfig)

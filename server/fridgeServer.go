@@ -29,7 +29,7 @@ func Run(cfg config.ServerConfig) error {
 	}
 
 	log.Printf("Server started on %s:%s", cfg.Host, cfg.Port)
-	return http.ListenAndServe(cfg.Host+":"+cfg.Port, newRouter())
+	return http.ListenAndServeTLS(cfg.Host+":"+cfg.Port, "cert.pem", "key.pem", newRouter())
 }
 
 func newRouter() *mux.Router {
@@ -40,17 +40,17 @@ func newRouter() *mux.Router {
 
 	sub := router.PathPrefix("/client").Subrouter()
 
-	sub.HandleFunc("/allRecipes", getRecipes).Methods("GET")
-	sub.HandleFunc("/searchRecipes", searchRecipes).Methods("GET")
-	sub.HandleFunc("/fridgeContent", getFoodInfo).Methods("GET")
+	sub.HandleFunc("/allRecipes", checkSession(getRecipes)).Methods("GET")
+	sub.HandleFunc("/searchRecipes", checkSession(searchRecipes)).Methods("GET")
+	sub.HandleFunc("/fridgeContent", checkSession(getFoodInfo)).Methods("GET")
 
-	sub.HandleFunc("/addAgent", addAgent).Methods("POST")
-	sub.HandleFunc("/removeAgent", removeAgent).Methods("DELETE")
-	sub.HandleFunc("/updateAgent", updateAgent).Methods("POST")
+	sub.HandleFunc("/addAgent", checkSession(addAgent)).Methods("POST")
+	sub.HandleFunc("/removeAgent", checkSession(removeAgent)).Methods("DELETE")
+	sub.HandleFunc("/updateAgent", checkSession(updateAgent)).Methods("POST")
 
 	sub.HandleFunc("/signup", clientRegister).Methods("POST")
 	sub.HandleFunc("/login", clientLogin).Methods("POST")
-	sub.HandleFunc("/logout", clientLogout).Methods("POST")
+	sub.HandleFunc("/logout", checkSession(clientLogout)).Methods("POST")
 
 	return router
 }
