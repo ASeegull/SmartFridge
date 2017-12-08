@@ -23,8 +23,8 @@ var containerID string
 //Start runs agent
 func Start(cfg *Config) error {
 
-	tokenURL := fmt.Sprintf("%s:%s%s", cfg.Host, cfg.Port, cfg.RestURI)
-	websocketURL := fmt.Sprintf("%s:%s%s", cfg.Websocket, cfg.Port, cfg.RestURI)
+	tokenURL := fmt.Sprintf("%s%s", cfg.Host, cfg.RestURI)
+	websocketURL := fmt.Sprintf("%s%s", cfg.Websocket, cfg.RestURI)
 	if err := setToken(tokenURL); err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func setToken(urlForToken string) error {
 		MaxIdleConns:       10,
 		IdleConnTimeout:    30 * time.Second,
 		DisableCompression: true,
-		TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
+		//TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
 	response, err := client.Post(urlForToken, "application/json; charset=utf-8", bytes.NewBuffer(data))

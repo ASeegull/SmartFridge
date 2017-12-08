@@ -1,4 +1,4 @@
-host: "https://localhost"
+host: "https://peaceful-thicket-55332.herokuapp.com"
 port: "9000"
-websocket: "wss://localhost"
+websocket: "wss://peaceful-thicket-55332.herokuapp.com"
 restURI: "/agent"

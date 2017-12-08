@@ -78,6 +78,17 @@ func ClientLogin(login string, pass string) error {
 	return nil
 }
 
+//ClientLogin checks login and pass for client
+func GetUserID(login string) (string, error) {
+	var err error
+	user := User{}
+	err = db.Where("login = ?", login).Find(&user).Error
+	if err != nil {
+		return "", err
+	}
+	return user.ID, nil
+}
+
 //CheckAgent checks agent registration, if agent is associated with a user returns true as first returning value
 func CheckAgent(idUser string, idAgent string) (bool, error) {
 	var err error
