@@ -15,9 +15,10 @@ type Config struct {
 
 //MongoConfig includes config for mongoDB
 type MongoConfig struct {
-	URI      string `yaml:"uri"`
-	Database string `yaml:"database"`
-	Table    string `yaml:"table"`
+	URI             string `yaml:"uri"`
+	Database        string `yaml:"database"`
+	Table           string `yaml:"table"`
+	ConnectionsPool int    `yaml:"connectionsPool"`
 }
 
 //PostgresConfigStr structs yaml configuration
