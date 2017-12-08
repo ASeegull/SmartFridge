@@ -11,11 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Saves http methods to constants with short names
-const (
-	GET = http.MethodGet
-)
-
 // newRouter сreates and returns gorilla router
 func newRouter(staticPath string) *mux.Router {
 	r := mux.NewRouter()
@@ -30,16 +25,21 @@ func Run(cfg *config.Config) {
 
 	var wg sync.WaitGroup
 
-	wg.Add(2)
+	wg.Add(1)
 
 	r := newRouter(cfg.StaticPath)
 	port := os.Getenv("PORT")
-	switch {
-	case port != "":
+	if port != "" {
 		log.WithField("port", port).Info("Server started")
 		log.Fatal(http.ListenAndServe(":"+port, r))
+	} else {
+		serve(wg, cfg, r)
 	}
 
+	wg.Wait()
+}
+
+func serve(wg sync.WaitGroup, cfg *config.Config, r *mux.Router) {
 	go func() {
 		addr := cfg.HTTPAddr()
 		log.WithField("address", addr).Info("HTTP Server started")
@@ -49,6 +49,8 @@ func Run(cfg *config.Config) {
 		); err != nil {
 			log.Fatal(errors.Annotate(err, "HTTP server crushed"))
 		}
+
+		defer wg.Done()
 	}()
 
 	go func() {
@@ -60,7 +62,7 @@ func Run(cfg *config.Config) {
 		); err != nil {
 			log.Fatal(errors.Annotate(err, "HTTPS server crushed"))
 		}
-	}()
 
-	wg.Wait()
+		defer wg.Done()
+	}()
 }
