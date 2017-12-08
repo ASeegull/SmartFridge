@@ -27,6 +27,20 @@ func sendErrorMsg(w http.ResponseWriter, err error, status int) {
 	http.Error(w, err.Error(), status)
 }
 
+func checkSession(h http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if status, err := checkOutUser(w, r); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		} else {
+			if status == true {
+				h.ServeHTTP(w, r)
+			} else {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+			}
+		}
+	})
+}
+
 func agentAuthentication(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -162,7 +176,6 @@ func getFoodInfo(w http.ResponseWriter, r *http.Request) {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if err = json.NewEncoder(w).Encode(foods); err != nil {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
@@ -182,7 +195,6 @@ func getRecipes(w http.ResponseWriter, r *http.Request) {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	if _, err = w.Write(data); err != nil {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
@@ -206,55 +218,53 @@ func updateAgent(w http.ResponseWriter, r *http.Request) {
 }
 
 func clientLogin(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+	name := r.FormValue("name")
+	pass := r.FormValue("password")
 
-	jsn, err := ioutil.ReadAll(r.Body)
+	if err := database.ClientLogin(name, pass); err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 
+	userID, err := database.GetUserID(name)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	login := database.Login{}
-	if err = login.Unmarshalling(jsn); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+	if err := sessionSet(w, r, userID); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	if err = login.LogIn(); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
 }
 
 func clientLogout(w http.ResponseWriter, r *http.Request) {
-
+	if err := closeSession(w, r); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func clientRegister(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+	name := r.FormValue("name")
+	pass := r.FormValue("password")
 
-	jsn, err := ioutil.ReadAll(r.Body)
+	if err := database.RegisterNewUser(name, pass); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
+	userID, err := database.GetUserID(name)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	login := database.Login{}
-	if err = login.Unmarshalling(jsn); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+	if err := sessionSet(w, r, userID); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	if err = login.Register(); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
 }
