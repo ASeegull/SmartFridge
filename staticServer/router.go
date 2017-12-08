@@ -1,7 +1,6 @@
 package staticServer
 
 import (
-	"context"
 	"net/http"
 	"os"
 	"sync"
@@ -27,7 +26,7 @@ func newRouter(staticPath string) *mux.Router {
 }
 
 // Run starts servers for http and https connections
-func Run(cfg *config.Config, ctx context.Context) {
+func Run(cfg *config.Config) {
 
 	var wg sync.WaitGroup
 

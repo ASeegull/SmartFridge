@@ -10,10 +10,6 @@ import (
 func redirect(httpsAddr string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		target := "https://" + httpsAddr + req.URL.String()
-
-		if len(req.URL.RawQuery) > 0 {
-			target += "?" + req.URL.RawQuery
-		}
 		log.Printf("redirect to: %s", target)
 		http.Redirect(w, req, target, http.StatusPermanentRedirect)
 	}
