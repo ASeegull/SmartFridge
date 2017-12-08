@@ -1,8 +1,6 @@
 package database
 
-import (
-	"encoding/json"
-)
+import "encoding/json"
 
 //FoodInfo is example struct for agent
 type FoodInfo struct {
@@ -67,6 +65,7 @@ type User struct {
 	ID       string
 	Login    string
 	Password string
+	Role     string
 }
 
 //Login contains username and password

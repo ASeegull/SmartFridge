@@ -23,11 +23,14 @@ type MongoConfig struct {
 
 //PostgresConfigStr structs yaml configuration
 type PostgresConfigStr struct {
-	Dbhost     string `yaml:"dbhost"`
-	Dbport     string `yaml:"dbport"`
-	DbUser     string `yaml:"dbUser"`
-	DbPassword string `yaml:"dbPassword"`
-	DbName     string `yaml:"dbName"`
+	Dbhost                   string `yaml:"dbhost"`
+	Dbport                   string `yaml:"dbport"`
+	DbUser                   string `yaml:"dbUser"`
+	DbPassword               string `yaml:"dbPassword"`
+	DbName                   string `yaml:"dbName"`
+	MaxOpenedConnectionsToDb int    `yaml:"maxOpenedConnectionsToDb"`
+	MaxIdleConnectionsToDb   int    `yaml:"maxIdleConnectionsToDb"`
+	MbConnMaxLifetimeMinutes int    `yaml:"mbConnMaxLifetimeMinutes"`
 }
 
 //ServerConfig includes config for server

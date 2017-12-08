@@ -1,7 +1,6 @@
 package database
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -12,39 +11,39 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/satori/go.uuid"
-
-	"log"
 )
 
 const (
 	avgNumrOfIngInRecepie  = 7
 	prognosedNumOfRecepies = 100
 	prognosedNumOfProducts = 100
+	avgNumOfAgentsOfUser   = 10
 )
 
 var dbinfo string
-
-func InitPostgersDB(cfg config.PostgresConfigStr) error {
-	dbinfo = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		cfg.Dbhost, cfg.Dbport, cfg.DbUser, cfg.DbPassword, cfg.DbName)
-	return nil
-}
-
 var db *gorm.DB
 
-//RegisterNewUser adds a new user, returns error if adding was not successful
-func RegisterNewUser(login string, passHash string) error {
+//InitPostgersDB initiates connection to postgres gatabase
+func InitPostgersDB(cfg config.PostgresConfigStr) error {
 	var err error
+	if db != nil {
+		return nil
+	}
+	dbinfo = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		cfg.Dbhost, cfg.Dbport, cfg.DbUser, cfg.DbPassword, cfg.DbName)
 	db, err = gorm.Open("postgres", dbinfo)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err = db.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
+	db.DB().SetMaxOpenConns(cfg.MaxOpenedConnectionsToDb)
+	db.DB().SetMaxIdleConns(cfg.MaxIdleConnectionsToDb)
+	db.DB().SetConnMaxLifetime(time.Minute * time.Duration(cfg.MbConnMaxLifetimeMinutes))
+	return nil
+}
+
+//RegisterNewUser adds a new user, returns error if adding was not successful
+func RegisterNewUser(login string, passHash string) error {
+	var err error
 	user := User{}
 	err = db.Where("login = ?", login).Find(&user).Error
 	switch {
@@ -66,16 +65,6 @@ func RegisterNewUser(login string, passHash string) error {
 //ClientLogin checks login and pass for client
 func ClientLogin(login string, pass string) error {
 	var err error
-	db, err = gorm.Open("postgres", dbinfo)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = db.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 	user := User{}
 	err = db.Where("login = ?", login).Find(&user).Error
 	switch {
@@ -92,16 +81,6 @@ func ClientLogin(login string, pass string) error {
 //CheckAgent checks agent registration, if agent is associated with a user returns true as first returning value
 func CheckAgent(idUser string, idAgent string) (bool, error) {
 	var err error
-	db, err = gorm.Open("postgres", dbinfo)
-	if err != nil {
-		return false, err
-	}
-	defer func() {
-		err = db.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 	agent := Agent{}
 	err = db.Where("agents.id = ? AND agents.user_id = ?", idAgent, idUser).Find(&agent).Error
 	if err != nil {
@@ -112,17 +91,6 @@ func CheckAgent(idUser string, idAgent string) (bool, error) {
 
 //RegisterNewAgent adds a new agent to user, returns nil if adding was successful
 func RegisterNewAgent(idUser string, idAgent string) error {
-	var err error
-	db, err = gorm.Open("postgres", dbinfo)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err := db.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 	agent := Agent{ID: idAgent, UserID: idUser}
 	rows := db.Create(&agent).RowsAffected
 	if !(rows == 1) {
@@ -135,18 +103,8 @@ func RegisterNewAgent(idUser string, idAgent string) error {
 //GetAllAgentsIDForClient returns all agent for clientID as a slice of string
 func GetAllAgentsIDForClient(userID string) ([]string, error) {
 	var err error
-	db, err = gorm.Open("postgres", dbinfo)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		err = db.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 	var agentID string
-	agentIds := make([]string, 0, avgNumrOfIngInRecepie)
+	agentIds := make([]string, 0, avgNumOfAgentsOfUser)
 	rows, err := db.Table("agents").Select("agents.id").Where("agents.user_id=?", userID).Rows()
 	if err != nil {
 		return nil, err
@@ -164,16 +122,6 @@ func GetAllAgentsIDForClient(userID string) ([]string, error) {
 //GetDefaultExplorationDate function returns expiration date a product as time.Time object
 func GetDefaultExplorationDate(productName string) (time.Time, error) {
 	var err error
-	db, err = gorm.Open("postgres", dbinfo)
-	if err != nil {
-		return time.Time{}, err
-	}
-	defer func() {
-		err = db.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 	product := Product{}
 	err = db.Where("name LIKE ?", strings.ToLower(productName)).First(&product).Error
 	switch {
@@ -185,19 +133,9 @@ func GetDefaultExplorationDate(productName string) (time.Time, error) {
 	return time.Now().Add(time.Hour * 24 * time.Duration(product.ShelfLife)), nil
 }
 
-//AllRecipes functions returns all Recipes with ingridients as a JSON
+//AllRecipes functions returns all Recipes with ingridients
 func AllRecipes() ([]Recepie, error) {
 	var err error
-	db, err = gorm.Open("postgres", dbinfo)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		err = db.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 	recipes := make([]Recepie, 0, prognosedNumOfRecepies)
 	var recName, description, complexity, name, unit string
 	var id, amount, coockingTimeMin int
@@ -209,17 +147,17 @@ func AllRecipes() ([]Recepie, error) {
 	if err != nil {
 		return nil, err
 	}
-	var new string
+	var newRec string
 	k := 0
 	for rows.Next() {
 		err = rows.Scan(&id, &recName, &description, &coockingTimeMin, &complexity, &amount, &unit, &name)
 		if err != nil {
 			return nil, err
 		}
-		if recName != new {
+		if recName != newRec {
 			ing := make([]string, 0, avgNumrOfIngInRecepie)
 			recipes = append(recipes, Recepie{ID: id, RecName: recName, Complexity: complexity, CoockingTimeMin: coockingTimeMin, Description: description, Ingred: append(ing, strconv.Itoa(amount)+" "+name+" "+unit)})
-			new = recName
+			newRec = recName
 			k++
 		} else {
 			recipes[k-1].Ingred = append(recipes[k-1].Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
@@ -228,21 +166,11 @@ func AllRecipes() ([]Recepie, error) {
 	return recipes, nil
 }
 
-//GetAllProductsName returns a slice, containing IDs of all products
+//GetAllProductsNames returns a slice, containing IDs of all products
 func GetAllProductsName() ([]string, error) {
 	var err error
-	db, err = gorm.Open("postgres", dbinfo)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		err = db.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 	var productName string
-	productIDs := make([]string, 0, prognosedNumOfProducts)
+	productNames := make([]string, 0, prognosedNumOfProducts)
 	rows, err := db.Table("products").Select("products.name").Rows()
 	if err != nil {
 		return nil, err
@@ -252,24 +180,14 @@ func GetAllProductsName() ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		productIDs = append(productIDs, productName)
+		productNames = append(productNames, productName)
 	}
-	return productIDs, nil
+	return productNames, nil
 }
 
-//Recipes takes the slice of FoodInfo strucktures, representing all available products in all agents and return all recepies, which can be offered as a JSON
-func Recipes(foodInfoSlice []FoodInfo) ([]byte, error) {
+//Recipes takes the slice of FoodInfo strucktures, representing all available products in all agents and return all recepies, which can be offered
+func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
 	var err error
-	db, err = gorm.Open("postgres", dbinfo)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		err = db.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 	productNameSlice := make([]string, 0, avgNumrOfIngInRecepie)
 	productMap := make(map[string]int)
 	for _, v := range foodInfoSlice {
@@ -277,7 +195,7 @@ func Recipes(foodInfoSlice []FoodInfo) ([]byte, error) {
 		productMap[strings.ToLower(v.Product)] = int(v.Weight)
 	}
 
-	recipes := []Recepie{}
+	recipes := make([]Recepie, 0, prognosedNumOfRecepies)
 	err = db.Table("recepies").
 		Joins("FULL JOIN ingridients on ingridients.recipe_id = recepies.id").
 		Joins("JOIN products on ingridients.product_id = products.id").
@@ -316,7 +234,7 @@ OUTER:
 		}
 		copyRec = append(copyRec, recipe)
 	}
-	return json.Marshal(copyRec)
+	return copyRec, nil
 }
 
 //contains shows if a slice contains given value
