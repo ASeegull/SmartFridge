@@ -22,14 +22,15 @@ func Run(cfg config.ServerConfig) error {
 	err := httpscerts.Check("cert.pem", "key.pem")
 	// If they are not available, generate new ones.
 	if err != nil {
-		err = httpscerts.Generate("cert.pem", "key.pem", "127.0.0.1:8081")
+		err = httpscerts.Generate("cert.pem", "key.pem", "localhost:9000")
 		if err != nil {
 			log.Fatal("Error: Couldn't create https certs.")
 		}
 	}
 
 	log.Printf("Server started on %s:%s", cfg.Host, cfg.Port)
-	return http.ListenAndServeTLS(cfg.Host+":"+cfg.Port, "cert.pem", "key.pem", newRouter())
+	//return http.ListenAndServeTLS(cfg.Host+":"+cfg.Port, "cert.pem", "key.pem", newRouter())
+	return http.ListenAndServe(cfg.Host+":"+cfg.Port, newRouter())
 }
 
 func newRouter() *mux.Router {

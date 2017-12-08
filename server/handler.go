@@ -218,15 +218,24 @@ func updateAgent(w http.ResponseWriter, r *http.Request) {
 }
 
 func clientLogin(w http.ResponseWriter, r *http.Request) {
-	name := r.FormValue("name")
-	pass := r.FormValue("password")
+	login := &database.Login{}
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	if err := database.ClientLogin(name, pass); err != nil {
+	if err := login.Unmarshalling(data); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err := database.ClientLogin(login.UserName, login.Pass); err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	userID, err := database.GetUserID(name)
+	userID, err := database.GetUserID(login.UserName)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -248,15 +257,24 @@ func clientLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func clientRegister(w http.ResponseWriter, r *http.Request) {
-	name := r.FormValue("name")
-	pass := r.FormValue("password")
-
-	if err := database.RegisterNewUser(name, pass); err != nil {
+	login := &database.Login{}
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	userID, err := database.GetUserID(name)
+	if err := login.Unmarshalling(data); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err := database.RegisterNewUser(login.UserName, login.Pass); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	userID, err := database.GetUserID(login.UserName)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
