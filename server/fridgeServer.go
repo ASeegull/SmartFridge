@@ -29,7 +29,7 @@ func Run(cfg config.ServerConfig) error {
 	}
 
 	log.Printf("Server started on %s:%s", cfg.Host, cfg.Port)
-	return http.ListenAndServeTLS(cfg.Host+":"+cfg.Port, "cert.pem", "key.pem", newRouter())
+	return http.ListenAndServe(cfg.Host+":"+cfg.Port, newRouter())
 }
 
 func newRouter() *mux.Router {
