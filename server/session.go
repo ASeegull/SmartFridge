@@ -13,10 +13,11 @@ var blockKey = securecookie.GenerateRandomKey(32)
 //var path = "DbPath"
 //var store = sessions.NewFilesystemStore(path,hashKey,blockKey)
 var store = sessions.NewCookieStore(hashKey, blockKey)
+
 var sessionName string
 
 func sessionSet(w http.ResponseWriter, r *http.Request, userID string) error {
-	session, err := store.Get(r, sessionName)
+	session, err := store.Get(r, "sessionName")
 	if err != nil {
 		return err
 	}

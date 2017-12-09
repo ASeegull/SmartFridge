@@ -746,32 +746,47 @@ var AuthService = (function () {
         (this.auth) ? this.router.navigate(['/home']) : this.router.navigate(['/signup']);
     };
     AuthService.prototype.login = function (creds) {
+        var _this = this;
         console.log(creds);
         this.http
-            .post(__WEBPACK_IMPORTED_MODULE_3__environments_environment__["a" /* environment */].apiURL + 'client/login', creds)
-            .subscribe(function (data) {
-            console.log(data);
+            .post(__WEBPACK_IMPORTED_MODULE_3__environments_environment__["a" /* environment */].apiURL + 'client/login', creds, { observe: 'response' })
+            .subscribe(function (res) {
+            console.log(res);
+            if (res.status === 200) {
+                _this.auth = true;
+                _this.router.navigate(['/home']);
+            }
         }, function (err) {
             console.log('Something went wrong!', err);
         });
     };
     AuthService.prototype.signup = function (user) {
+        var _this = this;
+        var body = JSON.stringify({ login: user.name, pass: user.password });
         console.log(user);
         this.http
-            .post(__WEBPACK_IMPORTED_MODULE_3__environments_environment__["a" /* environment */].apiURL + 'client/signup', user)
-            .subscribe(function (data) {
-            console.log(data);
+            .post(__WEBPACK_IMPORTED_MODULE_3__environments_environment__["a" /* environment */].apiURL + 'client/signup', body, { observe: 'response' })
+            .subscribe(function (res) {
+            console.log(res);
+            if (res.status === 200) {
+                _this.auth = true;
+                _this.router.navigate(['/home']);
+            }
         }, function (err) {
-            console.log('Something went wrong!', err);
+            console.log(err);
         });
     };
     AuthService.prototype.logout = function () {
+        var _this = this;
         this.http
-            .get(__WEBPACK_IMPORTED_MODULE_3__environments_environment__["a" /* environment */].apiURL + 'client/logout')
-            .subscribe(function (data) {
-            console.log(data);
+            .get(__WEBPACK_IMPORTED_MODULE_3__environments_environment__["a" /* environment */].apiURL + 'client/logout', { observe: 'response' })
+            .subscribe(function (res) {
+            if (res.status === 200) {
+                _this.auth = false;
+                _this.router.navigate(['/signup']);
+            }
         }, function (err) {
-            console.log('Something went wrong!', err);
+            console.log(err);
         });
         this.router.navigate(['/signup']);
     };
@@ -1080,6 +1095,7 @@ var RecipesComponent = (function () {
         this.mainService = mainService;
     }
     RecipesComponent.prototype.ngOnInit = function () {
+        this.mainService.getRecipes();
         this.recipes = this.mainService.showRecipes();
     };
     RecipesComponent = __decorate([
@@ -1108,7 +1124,7 @@ var RecipesComponent = (function () {
 // The list of which env maps to which file can be found in `.angular-cli.json`.
 var environment = {
     production: false,
-    apiURL: 'https://localhost:9000'
+    apiURL: 'http://localhost:9000/'
 };
 
 

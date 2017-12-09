@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ASeegull/SmartFridge/server/database"
+	"github.com/davecheney/errors"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
@@ -248,21 +248,26 @@ func clientLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func clientRegister(w http.ResponseWriter, r *http.Request) {
-	name := r.FormValue("name")
-	pass := r.FormValue("password")
+	newUser := &database.Login{}
+	err := json.NewDecoder(r.Body).Decode(newUser)
+	log.Infof("%+v", newUser)
+	log.Info("request signup made")
 
-	if err := database.RegisterNewUser(name, pass); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	userID, err := database.GetUserID(name)
+	userID, err := database.RegisterNewUser(newUser.UserName, newUser.Pass)
 	if err != nil {
+		log.Error(errors.Annotate(err, "User already exist"))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	// userID, err := database.GetUserID(name)
+	// if err != nil {
+	// 	w.WriteHeader(http.StatusInternalServerError)
+	// 	return
+	// }
 
 	if err := sessionSet(w, r, userID); err != nil {
+		log.Error(errors.Annotate(err, "Couldn't create session"))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

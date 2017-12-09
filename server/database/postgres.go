@@ -42,24 +42,27 @@ func InitPostgersDB(cfg config.PostgresConfigStr) error {
 }
 
 //RegisterNewUser adds a new user, returns error if adding was not successful
-func RegisterNewUser(login string, passHash string) error {
-	var err error
+func RegisterNewUser(login string, passHash string) (string, error) {
 	user := User{}
-	err = db.Where("login = ?", login).Find(&user).Error
-	switch {
-	case err != nil:
-		return err
-	case user.ID != "":
-		return errors.New("login is already taken")
+	err := db.Where("login = ?", login).Find(&user).Error
+	fmt.Print(err)
+	// switch {
+	// case err != nil:
+	// 	return err
+	// case user.ID != "":
+	// 	return errors.New("login is already taken")
+	// }
+	if err == nil {
+		return "", errors.New("login is already taken")
 	}
 	user.ID = uuid.NewV4().String()
 	user.Login = login
 	user.Password = passHash
 	rows := db.Create(&user).RowsAffected
 	if rows != int64(1) {
-		return errors.New("user not added")
+		return "", errors.New("user not added")
 	}
-	return nil
+	return user.ID, nil
 }
 
 //ClientLogin checks login and pass for client

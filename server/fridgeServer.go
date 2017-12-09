@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/kabukky/httpscerts"
+	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,8 +29,10 @@ func Run(cfg config.ServerConfig) error {
 		}
 	}
 
+	handler := cors.Default().Handler(newRouter())
+
 	log.Printf("Server started on %s:%s", cfg.Host, cfg.Port)
-	return http.ListenAndServeTLS(cfg.Host+":"+cfg.Port, "cert.pem", "key.pem", newRouter())
+	return http.ListenAndServeTLS(cfg.Host+":"+cfg.Port, "cert.pem", "key.pem", handler)
 }
 
 func newRouter() *mux.Router {

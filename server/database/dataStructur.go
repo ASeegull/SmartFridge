@@ -110,7 +110,8 @@ func (log *Login) LogIn() error {
 
 //Register registers new user
 func (log *Login) Register() error {
-	return RegisterNewUser(log.UserName, log.Pass)
+	RegisterNewUser(log.UserName, log.Pass)
+	return nil
 }
 
 //Unmarshalling unmarchals to this struct
