@@ -47,17 +47,12 @@ type Product struct {
 
 //Recepie represents a recepie
 type Recepie struct {
-	ID              int      `json:"id"`
-	RecName         string   `json:"recName"`
+	ID              int      `json:"-"`
+	RecName         string   `json:"title"`
 	Description     string   `json:"description"`
 	CoockingTimeMin int      `json:"coockingTimeMin"`
 	Complexity      string   `json:"complexity"`
-	Ingred          []string `gorm:"-" json:"ingred"`
-}
-
-//RecipesStr contains all recipes
-type RecipesStr struct {
-	Recipes []Recepie `json:"recipes"`
+	Ingred          []string `gorm:"-" json:"ingredients"`
 }
 
 //User represents a user
@@ -92,15 +87,6 @@ func (lg *UserID) GetFoodsInFridge() ([]FoodInfo, error) {
 	}
 
 	return GetFoodsInFridge(IDs)
-}
-
-//GetAllRecipes returns all recipes
-func (rec *RecipesStr) GetAllRecipes() error {
-	var err error
-	if rec.Recipes, err = AllRecipes(); err != nil {
-		return err
-	}
-	return nil
 }
 
 //LogIn logged in

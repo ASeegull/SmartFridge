@@ -244,7 +244,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/header/nav/login/login.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<form #loginForm=\"ngForm\" (submit)=\"onSubmit()\">\t\t\n  <input type=\"email\" [(ngModel)]=\"creds.email\" name=\"email\" placeholder=\"email\">\t\n  <input type=\"password\"  [(ngModel)]=\"creds.password\" name=\"password\" placeholder=\"password\">\n  <button class=\"submit\" type=\"submit\">Login</button>\t\t\t\n</form>\n  \n"
+module.exports = "<form #loginForm=\"ngForm\" (submit)=\"onSubmit()\">\t\t\n  <input type=\"email\" [(ngModel)]=\"creds.name\" name=\"name\" placeholder=\"login\">\t\n  <input type=\"password\"  [(ngModel)]=\"creds.password\" name=\"password\" placeholder=\"password\">\n  <button class=\"submit\" type=\"submit\">Login</button>\t\t\t\n</form>\n  \n"
 
 /***/ }),
 
@@ -274,7 +274,6 @@ var LoginComponent = (function () {
         this.creds = new __WEBPACK_IMPORTED_MODULE_1__models_auth__["a" /* Login */]();
     }
     LoginComponent.prototype.onSubmit = function () {
-        alert(JSON.stringify(this.creds));
         this.authService.login(this.creds);
     };
     LoginComponent = __decorate([
@@ -689,7 +688,7 @@ var SignupComponent = (function () {
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return User; });
 var Login = (function () {
     function Login(obj) {
-        this.email = obj && obj.emai;
+        this.name = obj && obj.name;
     }
     return Login;
 }());
@@ -747,11 +746,12 @@ var AuthService = (function () {
     };
     AuthService.prototype.login = function (creds) {
         var _this = this;
-        console.log(creds);
+        var body = JSON.stringify({ login: creds.name, pass: creds.password });
+        console.log(body);
         this.http
-            .post(__WEBPACK_IMPORTED_MODULE_3__environments_environment__["a" /* environment */].apiURL + 'client/login', creds, { observe: 'response' })
+            .post(__WEBPACK_IMPORTED_MODULE_3__environments_environment__["a" /* environment */].apiURL + 'client/login', body, { observe: 'response', withCredentials: true })
             .subscribe(function (res) {
-            console.log(res);
+            console.log(res.headers);
             if (res.status === 200) {
                 _this.auth = true;
                 _this.router.navigate(['/home']);
@@ -763,9 +763,9 @@ var AuthService = (function () {
     AuthService.prototype.signup = function (user) {
         var _this = this;
         var body = JSON.stringify({ login: user.name, pass: user.password });
-        console.log(user);
+        console.log(body);
         this.http
-            .post(__WEBPACK_IMPORTED_MODULE_3__environments_environment__["a" /* environment */].apiURL + 'client/signup', body, { observe: 'response' })
+            .post(__WEBPACK_IMPORTED_MODULE_3__environments_environment__["a" /* environment */].apiURL + 'client/signup', body, { observe: 'response', withCredentials: true })
             .subscribe(function (res) {
             console.log(res);
             if (res.status === 200) {
@@ -828,13 +828,15 @@ var MainService = (function () {
     }
     MainService.prototype.getRecipes = function () {
         var _this = this;
-        this.http.get(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + 'client/allRecipes').subscribe(function (data) {
+        this.http.get(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + 'client/allRecipes', { withCredentials: true }).subscribe(function (data) {
+            console.log(data);
             _this.recipes = data;
         });
     };
     MainService.prototype.getProducts = function () {
         var _this = this;
         this.http.get(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + 'client/fridgeContent').subscribe(function (data) {
+            console.log(data);
             _this.products = data;
         });
     };
@@ -964,6 +966,7 @@ var HomeComponent = (function () {
         this.mainService = mainService;
     }
     HomeComponent.prototype.ngOnInit = function () {
+        this.mainService.getProducts();
         this.products = this.mainService.showProducts();
     };
     HomeComponent = __decorate([
@@ -1055,7 +1058,7 @@ exports = module.exports = __webpack_require__("../../../../css-loader/lib/css-b
 
 
 // module
-exports.push([module.i, "", ""]);
+exports.push([module.i, ".wrapper {\r\n    width: 50%;\r\n    margin-left: 10%;\r\n    margin-top: 3%;\r\n    box-shadow: 0 0 5px rgb(23, 43, 43);\r\n    padding: 1rem;\r\n    display: -webkit-box;\r\n    display: -ms-flexbox;\r\n    display: flex;\r\n    -webkit-box-align: center;\r\n        -ms-flex-align: center;\r\n            align-items: center;\r\n}\r\n\r\n.wrapper > * {\r\n    margin: 1rem;\r\n}", ""]);
 
 // exports
 
@@ -1068,7 +1071,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/views/recipes/recipes.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<app-header></app-header>\n<div class=\"wrapper\" *ngFor=\"let recipe of recipes\">\n    <p>{{ recipe.title }}</p>\n    <p>{{ recipe.description }}</p>\n    <p>{{ recipe.coockingTimeMin }}</p>\n    <p>{{ recipe.complexity }}</p>\n    <p>{{ recipe.ingredients }}</p>\n</div>\n<p>It works!</p>"
+module.exports = "<app-header></app-header>\n<div class=\"wrapper\" *ngFor=\"let recipe of recipes\">\n    <h3>{{ recipe.title }}</h3>\n    <div>{{ recipe.description }}</div>\n    <div class=\"time\">{{ recipe.coockingTimeMin }}</div>\n    <div class=\"complexity\">{{ recipe.complexity }}</div>\n    <div>{{ recipe.ingredients }}</div>\n</div>"
 
 /***/ }),
 
