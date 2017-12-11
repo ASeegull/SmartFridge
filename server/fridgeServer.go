@@ -11,6 +11,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Saves methods name to variables to avoid using magic strings
+const (
+	GET  = http.MethodGet
+	POST = http.MethodPost
+	DEL  = http.MethodDelete
+)
+
 var upgrader websocket.Upgrader
 
 //Run starts server
@@ -29,31 +36,36 @@ func Run(cfg config.ServerConfig) error {
 		}
 	}
 
-	handler := cors.Default().Handler(newRouter())
+	handler := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:4200", "http://localhost:5080", "https://aseegull.github.io"},
+		AllowCredentials: true,
+		AllowedMethods:   []string{"HEAD", "GET", "POST", "DELETE"},
+	}).Handler(newRouter())
 
 	log.Printf("Server started on %s:%s", cfg.Host, cfg.Port)
-	return http.ListenAndServeTLS(cfg.Host+":"+cfg.Port, "cert.pem", "key.pem", handler)
+	// return http.ListenAndServeTLS(cfg.Host+":"+cfg.Port, "cert.pem", "key.pem", handler)
+	return http.ListenAndServe(cfg.Host+":"+cfg.Port, handler)
 }
 
 func newRouter() *mux.Router {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/agent", agentAuthentication).Methods("POST")
-	router.HandleFunc("/agent", createWS).Methods("GET")
+	router.HandleFunc("/agent", agentAuthentication).Methods(POST)
+	router.HandleFunc("/agent", createWS).Methods(GET)
 
 	sub := router.PathPrefix("/client").Subrouter()
 
-	sub.HandleFunc("/allRecipes", checkSession(getRecipes)).Methods("GET")
-	sub.HandleFunc("/searchRecipes", checkSession(searchRecipes)).Methods("GET")
-	sub.HandleFunc("/fridgeContent", checkSession(getFoodInfo)).Methods("GET")
+	sub.HandleFunc("/allRecipes", checkSession(getRecipes)).Methods(GET)
+	sub.HandleFunc("/searchRecipes", checkSession(searchRecipes)).Methods(GET)
+	sub.HandleFunc("/fridgeContent", checkSession(getFoodInfo)).Methods(GET)
 
-	sub.HandleFunc("/addAgent", checkSession(addAgent)).Methods("POST")
-	sub.HandleFunc("/removeAgent", checkSession(removeAgent)).Methods("DELETE")
-	sub.HandleFunc("/updateAgent", checkSession(updateAgent)).Methods("POST")
+	sub.HandleFunc("/addAgent", checkSession(addAgent)).Methods(POST)
+	sub.HandleFunc("/removeAgent", checkSession(removeAgent)).Methods(DEL)
+	sub.HandleFunc("/updateAgent", checkSession(updateAgent)).Methods(POST)
 
-	sub.HandleFunc("/signup", clientRegister).Methods("POST")
-	sub.HandleFunc("/login", clientLogin).Methods("POST")
-	sub.HandleFunc("/logout", checkSession(clientLogout)).Methods("POST")
+	sub.HandleFunc("/signup", clientRegister).Methods(POST)
+	sub.HandleFunc("/login", clientLogin).Methods(POST)
+	sub.HandleFunc("/logout", checkSession(clientLogout)).Methods(POST)
 
 	return router
 }

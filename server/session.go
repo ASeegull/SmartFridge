@@ -14,18 +14,18 @@ var blockKey = securecookie.GenerateRandomKey(32)
 //var store = sessions.NewFilesystemStore(path,hashKey,blockKey)
 var store = sessions.NewCookieStore(hashKey, blockKey)
 
-var sessionName string
+const sessionName = "sessionName"
 
 func sessionSet(w http.ResponseWriter, r *http.Request, userID string) error {
-	session, err := store.Get(r, "sessionName")
+	session, err := store.Get(r, sessionName)
 	if err != nil {
 		return err
 	}
 
 	session.Options = &sessions.Options{
-		Domain: "localhost",
-		MaxAge: 3600,
-		//HttpOnly: true,
+		MaxAge:   3600,
+		Path:     "/",
+		HttpOnly: true,
 	}
 	session.Values["userID"] = userID
 	return session.Save(r, w)

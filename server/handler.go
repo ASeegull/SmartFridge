@@ -183,9 +183,9 @@ func getFoodInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func getRecipes(w http.ResponseWriter, r *http.Request) {
-	recipes := database.RecipesStr{}
+	recipes, err := database.AllRecipes()
 
-	if err := recipes.GetAllRecipes(); err != nil {
+	if err != nil {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
 		return
 	}
@@ -218,22 +218,25 @@ func updateAgent(w http.ResponseWriter, r *http.Request) {
 }
 
 func clientLogin(w http.ResponseWriter, r *http.Request) {
-	name := r.FormValue("name")
-	pass := r.FormValue("password")
+	user := &database.Login{}
+	err := json.NewDecoder(r.Body).Decode(user)
 
-	if err := database.ClientLogin(name, pass); err != nil {
+	if err := database.ClientLogin(user.UserName, user.Pass); err != nil {
+		log.Error(err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	userID, err := database.GetUserID(name)
+	userID, err := database.GetUserID(user.UserName)
 	if err != nil {
+		log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err := sessionSet(w, r, userID); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		log.Error(err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -250,8 +253,6 @@ func clientLogout(w http.ResponseWriter, r *http.Request) {
 func clientRegister(w http.ResponseWriter, r *http.Request) {
 	newUser := &database.Login{}
 	err := json.NewDecoder(r.Body).Decode(newUser)
-	log.Infof("%+v", newUser)
-	log.Info("request signup made")
 
 	userID, err := database.RegisterNewUser(newUser.UserName, newUser.Pass)
 	if err != nil {
@@ -259,12 +260,6 @@ func clientRegister(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	// userID, err := database.GetUserID(name)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
 
 	if err := sessionSet(w, r, userID); err != nil {
 		log.Error(errors.Annotate(err, "Couldn't create session"))

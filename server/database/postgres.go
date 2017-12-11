@@ -45,13 +45,6 @@ func InitPostgersDB(cfg config.PostgresConfigStr) error {
 func RegisterNewUser(login string, passHash string) (string, error) {
 	user := User{}
 	err := db.Where("login = ?", login).Find(&user).Error
-	fmt.Print(err)
-	// switch {
-	// case err != nil:
-	// 	return err
-	// case user.ID != "":
-	// 	return errors.New("login is already taken")
-	// }
 	if err == nil {
 		return "", errors.New("login is already taken")
 	}
@@ -81,7 +74,7 @@ func ClientLogin(login string, pass string) error {
 	return nil
 }
 
-//ClientLogin checks login and pass for client
+//GetUserID checks login and pass for client
 func GetUserID(login string) (string, error) {
 	var err error
 	user := User{}
