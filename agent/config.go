@@ -3,6 +3,7 @@ package agent
 import (
 	"io/ioutil"
 
+	"github.com/davecheney/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -14,20 +15,16 @@ type Config struct {
 	RestURI   string `yaml:"restURI"`
 }
 
-const (
-	configPath = "./config.yaml"
-)
-
 //ReadConfig reads config from file
-func ReadConfig() (*Config, error) {
+func ReadConfig(configPath string) (*Config, error) {
 	config := &Config{}
 	yamlFile, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		return nil, err
+		return nil, errors.Annotate(err, "could not read yaml file")
 	}
-	err = yaml.Unmarshal(yamlFile, config)
-	if err != nil {
-		return nil, err
+
+	if err = yaml.Unmarshal(yamlFile, config); err != nil {
+		return nil, errors.Annotate(err, "could not decode config file")
 	}
 	return config, nil
 }

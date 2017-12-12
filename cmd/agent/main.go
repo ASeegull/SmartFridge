@@ -1,16 +1,19 @@
 package main
 
 import (
-	"log"
+	"flag"
 
 	"github.com/ASeegull/SmartFridge/agent"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	cfg, err := agent.ReadConfig()
+	cfgPath := flag.String("config", "agent/config.yaml", "Location of config File")
+
+	flag.Parse()
+	cfg, err := agent.ReadConfig(*cfgPath)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	log.Fatal(agent.Start(cfg))
