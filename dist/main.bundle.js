@@ -779,7 +779,7 @@ var AuthService = (function () {
     AuthService.prototype.logout = function () {
         var _this = this;
         this.http
-            .get(__WEBPACK_IMPORTED_MODULE_3__environments_environment__["a" /* environment */].apiURL + 'client/logout', { observe: 'response' })
+            .get(__WEBPACK_IMPORTED_MODULE_3__environments_environment__["a" /* environment */].apiURL + 'client/logout', { observe: 'response', withCredentials: true })
             .subscribe(function (res) {
             if (res.status === 200) {
                 _this.auth = false;
@@ -835,7 +835,7 @@ var MainService = (function () {
     };
     MainService.prototype.getProducts = function () {
         var _this = this;
-        this.http.get(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + 'client/fridgeContent').subscribe(function (data) {
+        this.http.get(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + 'client/fridgeContent', { withCredentials: true }).subscribe(function (data) {
             console.log(data);
             _this.products = data;
         });
@@ -926,7 +926,7 @@ exports = module.exports = __webpack_require__("../../../../css-loader/lib/css-b
 
 
 // module
-exports.push([module.i, "", ""]);
+exports.push([module.i, ".wrapper {\r\n    width: 50%;\r\n    margin-left: 10%;\r\n    margin-top: 3%;\r\n    box-shadow: 0 0 5px rgb(23, 43, 43);\r\n    padding: 1rem;\r\n    display: -webkit-box;\r\n    display: -ms-flexbox;\r\n    display: flex;\r\n    -webkit-box-align: center;\r\n        -ms-flex-align: center;\r\n            align-items: center;\r\n}\r\n\r\n.wrapper > * {\r\n    margin: 1rem 1.5rem;\r\n}", ""]);
 
 // exports
 
@@ -939,7 +939,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/views/home/home.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<app-header></app-header>\r\n"
+module.exports = "<app-header></app-header>\r\n<div class=\"wrapper\" *ngFor=\"let product of products\">\r\n    <h3>{{ product.Product }}</h3>\r\n    <div>{{ product.Weight }}</div>\r\n</div>"
 
 /***/ }),
 
