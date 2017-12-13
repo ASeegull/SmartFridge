@@ -122,9 +122,9 @@ func GetAllAgentsIDForClient(userID string) ([]string, error) {
 	return agentIds, nil
 }
 
-// SetDefaultExpirationDate queries database and returns
-// avarage expiration date of a product as int32 in hours
-func SetDefaultExpirationDate(productName string) (int32, error) {
+// GetDefaultExpirationDate queries database and returns
+// avarage shelf time of a product as int in hours
+func GetDefaultExpirationDate(productName string) (int, error) {
 	product := Product{}
 	err := db.Where("name LIKE ?", strings.ToLower(productName)).First(&product).Error
 	if err != nil {
@@ -133,7 +133,31 @@ func SetDefaultExpirationDate(productName string) (int32, error) {
 	if product.ShelfLife == 0 {
 		return 0, errors.NotAssignedf("there is no shelflife for the product %s", productName)
 	}
-	return int32(product.ShelfLife), nil
+	return product.ShelfLife, nil
+}
+
+// SetExpirationDate sets default expiration date if none is provided by user
+func SetExpirationDate(shelftime int) string {
+	return time.Now().Add(time.Duration(shelftime) * time.Duration(24) * time.Hour).Format(time.ANSIC)
+}
+
+// CheckCondition sets Condition of FoodInfo
+// depending on expiration date
+func (product *FoodInfo) CheckCondition() error {
+	expdate, err := time.Parse(time.ANSIC, product.Expires)
+	if err != nil {
+		return err
+	}
+	delta := time.Now().Sub(expdate).Hours()
+	switch {
+	case delta < 48:
+		product.Condition = "warn"
+	case delta < 0:
+		product.Condition = "expired"
+	default:
+		product.Condition = "ok"
+	}
+	return nil
 }
 
 //AllRecipes functions returns all Recipes with ingridients

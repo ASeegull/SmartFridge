@@ -3,6 +3,7 @@ package database
 import (
 	"crypto/tls"
 	"net"
+	"sync"
 
 	"github.com/ASeegull/SmartFridge/server/config"
 	"github.com/davecheney/errors"
@@ -55,16 +56,29 @@ func SaveState(agentInfo *pb.Agentstate) error {
 func GetFoodsInFridge(containersID []string) ([]FoodInfo, error) {
 
 	c := session.DB(mongoConfig.Database).C(mongoConfig.Table)
+	cLen := len(containersID)
+	foods := make([]FoodInfo, cLen)
+	var wg sync.WaitGroup
+	var mutex = &sync.Mutex{}
+	wg.Add(cLen)
+	notFound := make([]string, 0, cLen)
 
-	foods := make([]FoodInfo, len(containersID))
-	for i, value := range containersID {
-		var agent FoodAgent
+	for i := range containersID {
 
-		if err := c.Find(bson.M{"agentid": value}).One(&agent); err != nil {
-			return nil, errors.Annotatef(err, "Could not find agent with id %s", value)
-		}
+		go func(val *string) {
+			var agent FoodAgent
+			defer wg.Done()
+			if err := c.Find(bson.M{"agentid": val}).One(&agent); err != nil {
+				mutex.Lock()
+				notFound = append(notFound, *val)
+				mutex.Unlock()
+			}
+			mutex.Lock()
+			foods = append(foods, FoodInfo{agent.Product, agent.Weight, agent.StateExpires, ""})
+			mutex.Unlock()
+		}(&containersID[i])
 
-		foods[i] = FoodInfo{agent.Product, agent.Weight, agent.StateExpires}
 	}
+	wg.Wait()
 	return foods, nil
 }

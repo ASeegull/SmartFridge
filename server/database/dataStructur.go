@@ -2,9 +2,10 @@ package database
 
 //FoodInfo is example struct for agent
 type FoodInfo struct {
-	Product string `bson:"product"`
-	Weight  int32  `bson:"weight"`
-	Expires int32  `bson:"stateExpires"`
+	Product   string `bson:"product"`
+	Weight    int32  `bson:"weight"`
+	Expires   string `bson:"stateExpires"`
+	Condition string `bson:"condition"`
 }
 
 //FoodAgent is example struct for agent
@@ -14,7 +15,7 @@ type FoodAgent struct {
 	AgentID      string `bson:"agentid"`
 	Product      string `bson:"productid"`
 	Weight       int32  `bson:"weight"`
-	StateExpires int32  `bson:"stateExpires"`
+	StateExpires string `bson:"stateExpires"`
 }
 
 //MUnit represents units of measure used for products
