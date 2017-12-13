@@ -26,5 +26,7 @@ func main() {
 		close(endconn)
 	}()
 
-	log.Fatal(agent.Start(cfg, endconn))
+	if err = agent.Start(cfg, endconn); err != nil {
+		log.Fatal(err)
+	}
 }

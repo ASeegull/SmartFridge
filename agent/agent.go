@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -19,8 +20,8 @@ import (
 
 // Controls is the one struct to rule them all :)
 type controls struct {
+	wg           sync.WaitGroup
 	conn         *websocket.Conn
-	wg           *sync.WaitGroup
 	stop         chan struct{}
 	tokenRequest *pb.Request
 	setup        *pb.Setup
@@ -29,6 +30,7 @@ type controls struct {
 //Start runs agent
 func Start(cfg *Config, endconn chan struct{}) error {
 	agent := &controls{stop: endconn}
+	// var wg sync.WaitGroup
 	var err error
 	// Get random agent ID and log it
 	agent.tokenRequest = agentInit()
@@ -51,8 +53,10 @@ func Start(cfg *Config, endconn chan struct{}) error {
 	defer resp.Body.Close()
 
 	// Start listen and write on connection
-	go streamAgentState(agent)
-	go timeReader(agent)
+	agent.wg.Add(2)
+	messages := make(chan []byte, 1024)
+	go streamAgentState(agent, messages)
+	go timeReader(agent, messages)
 	agent.wg.Wait()
 	return nil
 }
@@ -60,7 +64,7 @@ func Start(cfg *Config, endconn chan struct{}) error {
 func agentRegistration(tokenSetupURL string, req *pb.Request) (*pb.Setup, error) {
 	data, err := req.MarshalStruct()
 	if err != nil {
-		return nil, err
+		return nil, errors.Annotatef(err, "could marshal request %+v", req)
 	}
 
 	response, err := http.Post(tokenSetupURL, "application/octet-stream", bytes.NewBuffer(data))
@@ -71,20 +75,20 @@ func agentRegistration(tokenSetupURL string, req *pb.Request) (*pb.Setup, error)
 	body, err := ioutil.ReadAll(response.Body)
 	defer response.Body.Close()
 	if err != nil {
-		return nil, err
+		return nil, errors.Annotatef(err, "could not read response.body")
 	}
 
 	setup := &pb.Setup{}
 	if err = proto.Unmarshal(body, setup); err != nil {
-		return nil, err
+		return nil, errors.Annotatef(err, "could not unmarshal setup")
 	}
 
-	log.Infof("Agent successfully registered and configured")
+	log.Info("Agent successfully registered and configured")
 	return setup, nil
 }
 
-func streamAgentState(agent *controls) {
-	agent.wg.Add(1)
+func streamAgentState(agent *controls, messages chan []byte) {
+	log.Info("Starting streaming agent state")
 	agentInfo := foodAgentGenerator(agent.tokenRequest, agent.setup)
 	defer agent.wg.Done()
 	ticker := time.NewTicker(time.Second * time.Duration(agent.setup.Heartbeat))
@@ -92,6 +96,7 @@ func streamAgentState(agent *controls) {
 		select {
 		case <-agent.stop:
 			ticker.Stop()
+			agent.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, "Agent shut down"))
 			return
 		case <-ticker.C:
 			date, err := agentInfo.MarshalStruct()
@@ -103,7 +108,7 @@ func streamAgentState(agent *controls) {
 				log.Errorf("Failed to send agent data: %s", err)
 				return
 			}
-
+			log.Info("Agent state sent")
 		}
 	}
 }
@@ -114,25 +119,29 @@ func agentInit() *pb.Request {
 	return &pb.Request{id}
 }
 
-func timeReader(agent *controls) {
-	agent.wg.Add(1)
+func timeReader(agent *controls, messages chan []byte) {
+	log.Info("Starting reading from connection")
 	defer agent.wg.Done()
 	for {
 		select {
 		case <-agent.stop:
+			agent.conn.Close()
 			return
 		default:
-			types, message, err := agent.conn.ReadMessage()
-			if err != nil && types != websocket.BinaryMessage {
-				log.Error(err)
-				return
-			}
-			if types == websocket.CloseMessage {
-				return
-			}
-			if err = agent.setup.UnmarshalToStruct(message); err != nil {
-				log.Error(err)
-				return
+			for {
+				types, message, err := agent.conn.ReadMessage()
+				if types == websocket.TextMessage || err == io.ErrUnexpectedEOF {
+					log.Info(message)
+					continue
+				}
+				if types == websocket.CloseMessage {
+					return
+				}
+				if err = agent.setup.UnmarshalToStruct(message); err != nil {
+					log.Errorf("failed unmarshal messages: %s", err)
+					return
+				}
+				messages <- message
 			}
 		}
 	}
@@ -141,6 +150,7 @@ func timeReader(agent *controls) {
 var r = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func foodAgentGenerator(tokenRequest *pb.Request, agentSetup *pb.Setup) *pb.Agentstate {
+	log.Info("Generating agent state")
 	agentInfo := &pb.Agentstate{
 		AgentID:      tokenRequest.AgentID,
 		Token:        agentSetup.Token,
