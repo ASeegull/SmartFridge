@@ -9,7 +9,7 @@ message agentstate {
     string userID = 3;
     string productID = 4;
     int32 weight = 5;
-    int32 stateExpires = 6;
+    string stateExpires = 6;
 }
 
 

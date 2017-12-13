@@ -157,7 +157,7 @@ func foodAgentGenerator(tokenRequest *pb.Request, agentSetup *pb.Setup) *pb.Agen
 		UserID:       agentSetup.UserID,
 		ProductID:    agentSetup.ProductID,
 		Weight:       int32(r.Intn(900) + 1),
-		StateExpires: int32(time.Now().Second()),
+		StateExpires: time.Now().Format(time.ANSIC),
 	}
 	return agentInfo
 }
