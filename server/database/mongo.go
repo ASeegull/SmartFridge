@@ -2,10 +2,10 @@ package database
 
 import (
 	"crypto/tls"
-	"errors"
 	"net"
 
 	"github.com/ASeegull/SmartFridge/server/config"
+	"github.com/davecheney/errors"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
@@ -56,15 +56,15 @@ func GetFoodsInFridge(containersID []string) ([]FoodInfo, error) {
 
 	c := session.DB(mongoConfig.Database).C(mongoConfig.Table)
 
-	foods := make([]FoodInfo, 0, len(containersID))
-	for _, value := range containersID {
+	foods := make([]FoodInfo, len(containersID))
+	for i, value := range containersID {
 		var agent FoodAgent
 
 		if err := c.Find(bson.M{"agentid": value}).One(&agent); err != nil {
-			return nil, err
+			return nil, errors.Annotatef(err, "Could not find agent with id %s", value)
 		}
 
-		foods = append(foods, FoodInfo{agent.Product, agent.Weight})
+		foods[i] = FoodInfo{agent.Product, agent.Weight, agent.StateExpires}
 	}
 	return foods, nil
 }

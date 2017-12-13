@@ -1,13 +1,13 @@
 package database
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ASeegull/SmartFridge/server/config"
+	"github.com/davecheney/errors"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/satori/go.uuid"
@@ -60,15 +60,12 @@ func RegisterNewUser(login string, passHash string) (string, error) {
 
 //ClientLogin checks login and pass for client
 func ClientLogin(login string, pass string) error {
-	var err error
 	user := User{}
-	err = db.Where("login = ?", login).Find(&user).Error
-	switch {
-	case err != nil:
-		return err
-	case user.ID == "":
+	err := db.Where("login = ?", login).Find(&user).Error
+	if err != nil {
 		return errors.New("login not found")
-	case strings.TrimRight(pass, "\n") != user.Password:
+	}
+	if strings.TrimRight(pass, "\n") != user.Password {
 		return errors.New("wrong password")
 	}
 	return nil
@@ -104,7 +101,6 @@ func RegisterNewAgent(idUser string, idAgent string) error {
 		return errors.New("can not register an agent")
 	}
 	return nil
-
 }
 
 //GetAllAgentsIDForClient returns all agent for clientID as a slice of string
@@ -126,18 +122,18 @@ func GetAllAgentsIDForClient(userID string) ([]string, error) {
 	return agentIds, nil
 }
 
-//GetDefaultExplorationDate function returns expiration date a product as time.Time object
-func GetDefaultExplorationDate(productName string) (time.Time, error) {
-	var err error
+// SetDefaultExpirationDate queries database and returns
+// avarage expiration date of a product as int32 in hours
+func SetDefaultExpirationDate(productName string) (int32, error) {
 	product := Product{}
-	err = db.Where("name LIKE ?", strings.ToLower(productName)).First(&product).Error
-	switch {
-	case err != nil:
-		return time.Time{}, err
-	case product.Name == "":
-		return time.Time{}, errors.New("product not found")
+	err := db.Where("name LIKE ?", strings.ToLower(productName)).First(&product).Error
+	if err != nil {
+		return 0, errors.Annotatef(err, "for the product %s", productName)
 	}
-	return time.Now().Add(time.Hour * 24 * time.Duration(product.ShelfLife)), nil
+	if product.ShelfLife == 0 {
+		return 0, errors.NotAssignedf("there is no shelflife for the product %s", productName)
+	}
+	return int32(product.ShelfLife), nil
 }
 
 //AllRecipes functions returns all Recipes with ingridients
@@ -173,8 +169,8 @@ func AllRecipes() ([]Recepie, error) {
 	return recipes, nil
 }
 
-//GetAllProductsNames returns a slice, containing IDs of all products
-func GetAllProductsName() ([]string, error) {
+// GetAllProductsNames returns a slice, containing IDs of all products
+func GetAllProductsNames() ([]string, error) {
 	var err error
 	var productName string
 	productNames := make([]string, 0, prognosedNumOfProducts)

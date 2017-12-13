@@ -1,11 +1,10 @@
 package database
 
-import "encoding/json"
-
 //FoodInfo is example struct for agent
 type FoodInfo struct {
 	Product string `bson:"product"`
 	Weight  int32  `bson:"weight"`
+	Expires int32  `bson:"stateExpires"`
 }
 
 //FoodAgent is example struct for agent
@@ -98,9 +97,4 @@ func (log *Login) LogIn() error {
 func (log *Login) Register() error {
 	RegisterNewUser(log.UserName, log.Pass)
 	return nil
-}
-
-//Unmarshalling unmarchals to this struct
-func (log Login) Unmarshalling(data []byte) error {
-	return json.Unmarshal(data, &log)
 }
