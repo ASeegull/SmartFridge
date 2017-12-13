@@ -381,7 +381,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/header/nav/menu/slidebar/slidebar.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<div class=\"wrapper\">\n  <!-- <div class=\"closeBtn\">&times;</div> -->\n  <ul>\n    <li><a routerLink=\"/home\">My products</a></li>\n    <li><a routerLink=\"/recipes\">Recipes</a></li>\n    <li><a routerLink=\"/searchrecipes\">Recipes</a></li>\n    <li><a href=\"#\" (click)=\"logout();\">Log out</a></li>\n  </ul>\n</div>"
+module.exports = "<div class=\"wrapper\">\n  <!-- <div class=\"closeBtn\">&times;</div> -->\n  <ul>\n    <li><a routerLink=\"/home\">My products</a></li>\n    <li><a routerLink=\"/recipes\">Recipes</a></li>\n    <li><a routerLink=\"/searchrecipes\">Search Recipes</a></li>\n    <li><a href=\"#\" (click)=\"logout();\">Log out</a></li>\n  </ul>\n</div>"
 
 /***/ }),
 
