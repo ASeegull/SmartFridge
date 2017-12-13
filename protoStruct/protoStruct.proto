@@ -6,10 +6,10 @@ package protoStruct;
 message agentstate {
     string token = 1; 
     string agentID = 2;
-    string user = 3;
-    string product = 4;
+    string userID = 3;
+    string productID = 4;
     int32 weight = 5;
-    int64 stateExpires = 6;
+    int32 stateExpires = 6;
 }
 
 
