@@ -88,7 +88,7 @@ func agentAuthentication(w http.ResponseWriter, r *http.Request) {
 //getProduct is mock. Method returns random product from postgres DB (table Products)
 func getProduct() (*string, error) {
 
-	IDs, err := database.GetAllProductsName()
+	IDs, err := database.GetAllProductsNames()
 	if err != nil {
 		return nil, err
 	}
