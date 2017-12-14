@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -11,10 +12,10 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 
 	pb "github.com/ASeegull/SmartFridge/protoStruct"
-	"github.com/davecheney/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,15 +23,13 @@ import (
 type controls struct {
 	wg           sync.WaitGroup
 	conn         *websocket.Conn
-	stop         chan struct{}
 	tokenRequest *pb.Request
 	setup        *pb.Setup
 }
 
 //Start runs agent
-func Start(cfg *Config, endconn chan struct{}) error {
-	agent := &controls{stop: endconn}
-	// var wg sync.WaitGroup
+func Start(cfg *Config, ctx context.Context) error {
+	agent := &controls{}
 	var err error
 	// Get random agent ID and log it
 	agent.tokenRequest = agentInit()
@@ -39,14 +38,14 @@ func Start(cfg *Config, endconn chan struct{}) error {
 	setupURL, wsURL := cfg.GetEndPoints()
 	agent.setup, err = agentRegistration(setupURL, agent.tokenRequest)
 	if err != nil {
-		return errors.Annotatef(err, "could not set token for %s", setupURL)
+		return errors.Wrapf(err, "could not set token for %s", setupURL)
 	}
 
 	// Establish ws connection
 	dialer := websocket.Dialer{ReadBufferSize: 1024 * 4, WriteBufferSize: 1024 * 4}
 	conn, resp, err := dialer.Dial(wsURL, nil)
 	if err != nil || resp.StatusCode != http.StatusSwitchingProtocols {
-		return errors.Annotatef(err, "could not esteblish ws connection on %s. Status: %s", wsURL, resp.Status)
+		return errors.Wrapf(err, "could not esteblish ws connection on %s. Status: %s", wsURL, resp.Status)
 	}
 	agent.conn = conn
 	defer agent.conn.Close()
@@ -55,8 +54,8 @@ func Start(cfg *Config, endconn chan struct{}) error {
 	// Start listen and write on connection
 	agent.wg.Add(2)
 	messages := make(chan []byte, 1024)
-	go streamAgentState(agent, messages)
-	go timeReader(agent, messages)
+	go streamAgentState(ctx, agent, messages)
+	go timeReader(ctx, agent, messages)
 	agent.wg.Wait()
 	return nil
 }
@@ -64,37 +63,37 @@ func Start(cfg *Config, endconn chan struct{}) error {
 func agentRegistration(tokenSetupURL string, req *pb.Request) (*pb.Setup, error) {
 	data, err := req.MarshalStruct()
 	if err != nil {
-		return nil, errors.Annotatef(err, "could marshal request %+v", req)
+		return nil, errors.Wrapf(err, "could marshal request %+v", req)
 	}
 
 	response, err := http.Post(tokenSetupURL, "application/octet-stream", bytes.NewBuffer(data))
 	if err != nil {
-		return nil, errors.Annotatef(err, "could not send token to %s", tokenSetupURL)
+		return nil, errors.Wrapf(err, "could not send token to %s", tokenSetupURL)
 	}
 
 	body, err := ioutil.ReadAll(response.Body)
-	defer response.Body.Close()
 	if err != nil {
-		return nil, errors.Annotatef(err, "could not read response.body")
+		return nil, errors.Wrapf(err, "could not read response.body")
 	}
+	defer response.Body.Close()
 
 	setup := &pb.Setup{}
 	if err = proto.Unmarshal(body, setup); err != nil {
-		return nil, errors.Annotatef(err, "could not unmarshal setup")
+		return nil, errors.Wrapf(err, "could not unmarshal setup")
 	}
 
 	log.Info("Agent successfully registered and configured")
 	return setup, nil
 }
 
-func streamAgentState(agent *controls, messages chan []byte) {
+func streamAgentState(ctx context.Context, agent *controls, messages chan []byte) {
 	log.Info("Starting streaming agent state")
 	agentInfo := foodAgentGenerator(agent.tokenRequest, agent.setup)
 	defer agent.wg.Done()
 	ticker := time.NewTicker(time.Second * time.Duration(agent.setup.Heartbeat))
 	for {
 		select {
-		case <-agent.stop:
+		case <-ctx.Done():
 			ticker.Stop()
 			agent.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, "Agent shut down"))
 			return
@@ -119,12 +118,12 @@ func agentInit() *pb.Request {
 	return &pb.Request{id}
 }
 
-func timeReader(agent *controls, messages chan []byte) {
+func timeReader(ctx context.Context, agent *controls, messages chan []byte) {
 	log.Info("Starting reading from connection")
 	defer agent.wg.Done()
 	for {
 		select {
-		case <-agent.stop:
+		case <-ctx.Done():
 			agent.conn.Close()
 			return
 		default:

@@ -17,3 +17,5 @@ import:
 - package: gopkg.in/yaml.v2
 - package: github.com/rs/cors
 - package: github.com/jinzhu/inflection
+- package: github.com/pkg/errors
+  version: v0.8.0

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"os/signal"
@@ -18,15 +19,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
 	sign := make(chan os.Signal)
-	endconn := make(chan struct{})
 	signal.Notify(sign, os.Interrupt)
-	go func() {
+	go func(ctx context.Context, sign chan os.Signal) {
 		<-sign
-		close(endconn)
-	}()
+		cancel()
+	}(ctx, sign)
 
-	if err = agent.Start(cfg, endconn); err != nil {
+	if err = agent.Start(cfg, ctx); err != nil {
 		log.Fatal(err)
 	}
 }
