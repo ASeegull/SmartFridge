@@ -1,8 +1,10 @@
 package agent
 
 import (
+	"fmt"
 	"io/ioutil"
 
+	"github.com/davecheney/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -14,20 +16,22 @@ type Config struct {
 	RestURI   string `yaml:"restURI"`
 }
 
-const (
-	configPath = "./config.yaml"
-)
-
 //ReadConfig reads config from file
-func ReadConfig() (*Config, error) {
+func ReadConfig(configPath string) (*Config, error) {
 	config := &Config{}
 	yamlFile, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		return nil, err
+		return nil, errors.Annotatef(err, "could not read yaml file %", configPath)
 	}
-	err = yaml.Unmarshal(yamlFile, config)
-	if err != nil {
-		return nil, err
+
+	if err = yaml.Unmarshal(yamlFile, config); err != nil {
+		return nil, errors.Annotatef(err, "could not decode config file %", configPath)
 	}
 	return config, nil
+}
+
+// GetEndPoints returns API endpoint to call for setup and address to call to establish websocket connection
+func (cfg *Config) GetEndPoints() (tokenSetupURL, wsURL string) {
+	return fmt.Sprintf("%s:%s%s", cfg.Host, cfg.Port, cfg.RestURI),
+		fmt.Sprintf("%s:%s%s", cfg.Websocket, cfg.Port, cfg.RestURI)
 }

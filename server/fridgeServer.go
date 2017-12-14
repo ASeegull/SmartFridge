@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Saves methods name to variables to avoid using magic strings
+// Saves methods names to variables to avoid using magic strings
 const (
 	GET  = http.MethodGet
 	POST = http.MethodPost

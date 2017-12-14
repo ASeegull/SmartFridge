@@ -18,8 +18,8 @@ import (
 
 //mock data
 const (
-	defaultHearBeat = 3
-	adminID         = "9079744c-ab87-4083-8400-19c14628c26f"
+	defaultHeartBeat = 3
+	adminID          = "9079744c-ab87-4083-8400-19c14628c26f"
 )
 
 func sendErrorMsg(w http.ResponseWriter, err error, status int) {
@@ -70,7 +70,7 @@ func agentAuthentication(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := pb.Setup{}
-	resp.SetParameters(pbRequest.AgentID, userID, *productName, defaultHearBeat)
+	resp.SetParameters(pbRequest.AgentID, userID, *productName, defaultHeartBeat)
 
 	data, err := resp.MarshalStruct()
 	if err != nil {
@@ -105,6 +105,7 @@ func createWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("New websocket connect with %s", r.Host)
+
 	go wsListener(conn)
 }
 
