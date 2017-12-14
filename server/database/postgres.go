@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/ASeegull/SmartFridge/server/config"
-	"github.com/davecheney/errors"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 )
 
@@ -63,7 +63,7 @@ func ClientLogin(login string, pass string) error {
 	user := User{}
 	err := db.Where("login = ?", login).Find(&user).Error
 	if err != nil {
-		return errors.New("login not found")
+		return errors.Wrap(err, "login not found")
 	}
 	if strings.TrimRight(pass, "\n") != user.Password {
 		return errors.New("wrong password")
@@ -73,11 +73,10 @@ func ClientLogin(login string, pass string) error {
 
 //GetUserID checks login and pass for client
 func GetUserID(login string) (string, error) {
-	var err error
 	user := User{}
-	err = db.Where("login = ?", login).Find(&user).Error
+	err := db.Where("login = ?", login).Find(&user).Error
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "cannot find user with login %s", login)
 	}
 	return user.ID, nil
 }
@@ -128,10 +127,10 @@ func GetDefaultExpirationDate(productName string) (int, error) {
 	product := Product{}
 	err := db.Where("name LIKE ?", strings.ToLower(productName)).First(&product).Error
 	if err != nil {
-		return 0, errors.Annotatef(err, "for the product %s", productName)
+		return 0, errors.Wrapf(err, "for the product %s", productName)
 	}
 	if product.ShelfLife == 0 {
-		return 0, errors.NotAssignedf("there is no shelflife for the product %s", productName)
+		return 0, errors.Errorf("there is no shelflife for the product %s", productName)
 	}
 	return product.ShelfLife, nil
 }
