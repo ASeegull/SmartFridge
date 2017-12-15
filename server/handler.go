@@ -131,8 +131,9 @@ func wsListener(conn *websocket.Conn) {
 			log.Errorf("cannot read from websocket %v", err)
 			return
 		}
+		log.Infof("%d", t)
 
-		if t == websocket.CloseNormalClosure {
+		if t == websocket.CloseGoingAway {
 			log.Errorf("closed ws connection with %s", conn.RemoteAddr())
 			return
 		}
@@ -143,6 +144,7 @@ func wsListener(conn *websocket.Conn) {
 			log.Errorf("unmarshal data from websocket error: %v", err)
 			return
 		}
+		log.Infof("agent state: %v", agentState)
 
 		if !agentState.CheckToken() {
 			log.Error(errors.New("unauthorized agent detected"))

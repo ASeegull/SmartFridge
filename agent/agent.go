@@ -3,7 +3,6 @@ package agent
 import (
 	"bytes"
 	"context"
-	"io"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -51,7 +50,7 @@ func Start(cfg *Config, ctx context.Context) error {
 	defer agent.conn.Close()
 	defer resp.Body.Close()
 
-	// Start listen and write on connection
+	// Start listening and writing on connection
 	agent.wg.Add(2)
 	messages := make(chan []byte, 1024)
 	go streamAgentState(ctx, agent, messages)
@@ -124,20 +123,22 @@ func timeReader(ctx context.Context, agent *controls, messages chan []byte) {
 	for {
 		select {
 		case <-ctx.Done():
-			agent.conn.Close()
 			return
 		default:
 			for {
 				types, message, err := agent.conn.ReadMessage()
-				if types == websocket.TextMessage || err == io.ErrUnexpectedEOF {
-					log.Info(message)
+				if types == websocket.TextMessage {
+					log.Info(string(message))
 					continue
 				}
-				if types == websocket.CloseMessage {
-					return
+
+				if err != nil {
+					log.Errorf("failed to read message from server %s", err)
+					break
 				}
+
 				if err = agent.setup.UnmarshalToStruct(message); err != nil {
-					log.Errorf("failed unmarshal messages: %s", err)
+					log.Errorf("failed to unmarshal messages: %s", err)
 					return
 				}
 				messages <- message
