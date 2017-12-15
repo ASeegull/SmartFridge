@@ -17,7 +17,7 @@ func (str *Agentstate) CheckToken() bool {
 func (str *Setup) SetParameters(agentID, userID, productID string, heartbeat int) {
 	str.UserID = userID
 	str.ProductID = productID
-	str.Heatrbeat = int32(heartbeat)
+	str.Heartbeat = int32(heartbeat)
 	str.Token = getHash(fmt.Sprintf("%s%s%s", agentID, userID, productID))
 }
 

@@ -1,4 +1,4 @@
-host: "https://localhost"
+host: "http://localhost"
 port: "9000"
-websocket: "wss://localhost"
+websocket: "ws://localhost"
 restURI: "/agent"
