@@ -97,6 +97,7 @@ var AppComponent = (function () {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_17__services_main_service__ = __webpack_require__("../../../../../src/app/services/main.service.ts");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_18__services_auth_service__ = __webpack_require__("../../../../../src/app/services/auth.service.ts");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_19__header_nav_menu_slidebar_slidebar_component__ = __webpack_require__("../../../../../src/app/header/nav/menu/slidebar/slidebar.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_20__views_searchrecipes_searchrecipes_component__ = __webpack_require__("../../../../../src/app/views/searchrecipes/searchrecipes.component.ts");
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -123,11 +124,13 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 
 
 
+
 var appRoutes = [
     { path: '', component: __WEBPACK_IMPORTED_MODULE_10__views_init_init_component__["a" /* InitComponent */] },
     { path: 'home', component: __WEBPACK_IMPORTED_MODULE_9__views_home_home_component__["a" /* HomeComponent */] },
     { path: 'signup', component: __WEBPACK_IMPORTED_MODULE_12__views_auth_auth_component__["a" /* AuthComponent */] },
-    { path: 'recipes', component: __WEBPACK_IMPORTED_MODULE_14__views_recipes_recipes_component__["a" /* RecipesComponent */] }
+    { path: 'recipes', component: __WEBPACK_IMPORTED_MODULE_14__views_recipes_recipes_component__["a" /* RecipesComponent */] },
+    { path: 'searchrecipes', component: __WEBPACK_IMPORTED_MODULE_20__views_searchrecipes_searchrecipes_component__["a" /* SearchrecipesComponent */] }
 ];
 var AppModule = (function () {
     function AppModule() {
@@ -147,7 +150,8 @@ var AppModule = (function () {
                 __WEBPACK_IMPORTED_MODULE_14__views_recipes_recipes_component__["a" /* RecipesComponent */],
                 __WEBPACK_IMPORTED_MODULE_15__main_item_item_component__["a" /* ItemComponent */],
                 __WEBPACK_IMPORTED_MODULE_16__main_recipe_recipe_component__["a" /* RecipeComponent */],
-                __WEBPACK_IMPORTED_MODULE_19__header_nav_menu_slidebar_slidebar_component__["a" /* SlidebarComponent */]
+                __WEBPACK_IMPORTED_MODULE_19__header_nav_menu_slidebar_slidebar_component__["a" /* SlidebarComponent */],
+                __WEBPACK_IMPORTED_MODULE_20__views_searchrecipes_searchrecipes_component__["a" /* SearchrecipesComponent */]
             ],
             imports: [
                 __WEBPACK_IMPORTED_MODULE_0__angular_platform_browser__["a" /* BrowserModule */],
@@ -377,7 +381,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/header/nav/menu/slidebar/slidebar.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<div class=\"wrapper\">\n  <!-- <div class=\"closeBtn\">&times;</div> -->\n  <ul>\n    <li><a routerLink=\"/home\">My products</a></li>\n    <li><a routerLink=\"/recipes\">Recipes</a></li>\n    <li><a href=\"#\" (click)=\"logout();\">Log out</a></li>\n  </ul>\n</div>"
+module.exports = "<div class=\"wrapper\">\n  <!-- <div class=\"closeBtn\">&times;</div> -->\n  <ul>\n    <li><a routerLink=\"/home\">My products</a></li>\n    <li><a routerLink=\"/recipes\">Recipes</a></li>\n    <li><a routerLink=\"/searchrecipes\">Search Recipes</a></li>\n    <li><a href=\"#\" (click)=\"logout();\">Log out</a></li>\n  </ul>\n</div>"
 
 /***/ }),
 
@@ -833,6 +837,13 @@ var MainService = (function () {
             _this.recipes = data;
         });
     };
+    MainService.prototype.getMyRecipes = function () {
+        var _this = this;
+        this.http.get(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + 'client/searchRecipes', { withCredentials: true }).subscribe(function (data) {
+            console.log(data);
+            _this.myRecipes = data;
+        });
+    };
     MainService.prototype.getProducts = function () {
         var _this = this;
         this.http.get(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + 'client/fridgeContent', { withCredentials: true }).subscribe(function (data) {
@@ -845,6 +856,9 @@ var MainService = (function () {
     };
     MainService.prototype.showRecipes = function () {
         return this.recipes;
+    };
+    MainService.prototype.showMyRecipes = function () {
+        return this.myRecipes;
     };
     MainService = __decorate([
         Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["A" /* Injectable */])(),
@@ -1110,6 +1124,72 @@ var RecipesComponent = (function () {
         __metadata("design:paramtypes", [__WEBPACK_IMPORTED_MODULE_1__services_main_service__["a" /* MainService */]])
     ], RecipesComponent);
     return RecipesComponent;
+}());
+
+
+
+/***/ }),
+
+/***/ "../../../../../src/app/views/searchrecipes/searchrecipes.component.css":
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__("../../../../css-loader/lib/css-base.js")(false);
+// imports
+
+
+// module
+exports.push([module.i, ".wrapper {\r\n    width: 50%;\r\n    margin-left: 10%;\r\n    margin-top: 3%;\r\n    box-shadow: 0 0 5px rgb(23, 43, 43);\r\n    padding: 1rem;\r\n    display: -webkit-box;\r\n    display: -ms-flexbox;\r\n    display: flex;\r\n    -webkit-box-align: center;\r\n        -ms-flex-align: center;\r\n            align-items: center;\r\n}\r\n\r\n.wrapper > * {\r\n    margin: 1rem;\r\n}", ""]);
+
+// exports
+
+
+/*** EXPORTS FROM exports-loader ***/
+module.exports = module.exports.toString();
+
+/***/ }),
+
+/***/ "../../../../../src/app/views/searchrecipes/searchrecipes.component.html":
+/***/ (function(module, exports) {
+
+module.exports = "<app-header></app-header>\n<div class=\"wrapper\" *ngFor=\"let recipe of recipes\">\n    <h3>{{ recipe.title }}</h3>\n    <div>{{ recipe.description }}</div>\n    <div class=\"time\">{{ recipe.coockingTimeMin }}</div>\n    <div class=\"complexity\">{{ recipe.complexity }}</div>\n    <div>{{ recipe.ingredients }}</div>\n</div>"
+
+/***/ }),
+
+/***/ "../../../../../src/app/views/searchrecipes/searchrecipes.component.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return SearchrecipesComponent; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/esm5/core.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__services_main_service__ = __webpack_require__("../../../../../src/app/services/main.service.ts");
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+
+var SearchrecipesComponent = (function () {
+    function SearchrecipesComponent(mainService) {
+        this.mainService = mainService;
+    }
+    SearchrecipesComponent.prototype.ngOnInit = function () {
+        this.mainService.getMyRecipes();
+        this.recipes = this.mainService.showMyRecipes();
+    };
+    SearchrecipesComponent = __decorate([
+        Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["n" /* Component */])({
+            selector: 'app-searchrecipes',
+            template: __webpack_require__("../../../../../src/app/views/searchrecipes/searchrecipes.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/views/searchrecipes/searchrecipes.component.css")]
+        }),
+        __metadata("design:paramtypes", [__WEBPACK_IMPORTED_MODULE_1__services_main_service__["a" /* MainService */]])
+    ], SearchrecipesComponent);
+    return SearchrecipesComponent;
 }());
 
 
