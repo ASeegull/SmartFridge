@@ -20,24 +20,36 @@ import (
 const (
 	defaultHearBeat = 3
 	adminID         = "9079744c-ab87-4083-8400-19c14628c26f"
+	clientURI       = "http://localhost:15080"
 )
 
 func sendErrorMsg(w http.ResponseWriter, err error, status int) {
-	log.Error(err)
-	http.Error(w, err.Error(), status)
+	if err != nil {
+		log.Error(err)
+	}
+
+	//for local work
+	//w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	//w.Header().Set("Access-Control-Allow-Credentials", "true")
+	//w.Header().Set("Access-Control-Allow-Origin", clientURI)
+	w.WriteHeader(status)
 }
 
 func checkSession(h http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if status, err := checkOutUser(w, r); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		} else {
-			if status == true {
-				h.ServeHTTP(w, r)
-			} else {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
-			}
+
+		status, err := isNewSession(w, r)
+		if err != nil {
+			sendErrorMsg(w, err, http.StatusInternalServerError)
+			return
 		}
+
+		if status {
+			sendErrorMsg(w, err, http.StatusUnauthorized)
+			return
+		}
+
+		h.ServeHTTP(w, r)
 	})
 }
 
@@ -161,22 +173,24 @@ func wsListener(conn *websocket.Conn) {
 }
 
 func getFoodInfo(w http.ResponseWriter, r *http.Request) {
-
-	if r.Body == nil {
-		sendErrorMsg(w, errors.New("please send a request body"), http.StatusBadRequest)
-		return
-	}
-
-	userID := &database.UserID{ID: adminID}
-
-	defer r.Body.Close()
-
-	foods, err := userID.GetFoodsInFridge()
+	userID, err := getUserID(r)
 	if err != nil {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
 		return
 	}
 
+	ID := &database.UserID{ID: userID}
+
+	foods, err := ID.GetFoodsInFridge()
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	//for local work
+	//w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	//w.Header().Set("Access-Control-Allow-Credentials", "true")
+	//w.Header().Set("Access-Control-Allow-Origin", clientURI)
 	if err = json.NewEncoder(w).Encode(foods); err != nil {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
 	}
@@ -196,13 +210,43 @@ func getRecipes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//for local work
+	//w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	//w.Header().Set("Access-Control-Allow-Credentials", "true")
+	//w.Header().Set("Access-Control-Allow-Origin", clientURI)
 	if _, err = w.Write(data); err != nil {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
 	}
 }
 
 func searchRecipes(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserID(r)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
 
+	ID := &database.UserID{ID: userID}
+
+	foods, err := ID.GetFoodsInFridge()
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	recipes, err := database.Recipes(foods)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	//for local work
+	//w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	//w.Header().Set("Access-Control-Allow-Credentials", "true")
+	//w.Header().Set("Access-Control-Allow-Origin", clientURI)
+	if err = json.NewEncoder(w).Encode(recipes); err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+	}
 }
 
 func addAgent(w http.ResponseWriter, r *http.Request) {
@@ -219,52 +263,53 @@ func updateAgent(w http.ResponseWriter, r *http.Request) {
 
 func clientLogin(w http.ResponseWriter, r *http.Request) {
 	user := &database.Login{}
-	err := json.NewDecoder(r.Body).Decode(user)
+	if err := json.NewDecoder(r.Body).Decode(user); err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
 
 	if err := database.ClientLogin(user.UserName, user.Pass); err != nil {
-		log.Error(err)
-		w.WriteHeader(http.StatusUnauthorized)
+		sendErrorMsg(w, err, http.StatusUnauthorized)
 		return
 	}
 
 	userID, err := database.GetUserID(user.UserName)
 	if err != nil {
-		log.Error(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		sendErrorMsg(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	if err := sessionSet(w, r, userID); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Error(err)
+		sendErrorMsg(w, err, http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	sendErrorMsg(w, nil, http.StatusOK)
 }
 
 func clientLogout(w http.ResponseWriter, r *http.Request) {
 	if err := closeSession(w, r); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		sendErrorMsg(w, err, http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	sendErrorMsg(w, nil, http.StatusOK)
 }
 
 func clientRegister(w http.ResponseWriter, r *http.Request) {
 	newUser := &database.Login{}
-	err := json.NewDecoder(r.Body).Decode(newUser)
+	if err := json.NewDecoder(r.Body).Decode(newUser); err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
 
 	userID, err := database.RegisterNewUser(newUser.UserName, newUser.Pass)
 	if err != nil {
-		log.Error(errors.Annotate(err, "User already exist"))
-		w.WriteHeader(http.StatusInternalServerError)
+		sendErrorMsg(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	if err := sessionSet(w, r, userID); err != nil {
-		log.Error(errors.Annotate(err, "Couldn't create session"))
-		w.WriteHeader(http.StatusInternalServerError)
+		sendErrorMsg(w, err, http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	sendErrorMsg(w, nil, http.StatusOK)
 }

@@ -30,8 +30,7 @@ func Run(cfg config.ServerConfig) error {
 	err := httpscerts.Check("cert.pem", "key.pem")
 	// If they are not available, generate new ones.
 	if err != nil {
-		err = httpscerts.Generate("cert.pem", "key.pem", "127.0.0.1:8081")
-		if err != nil {
+		if err = httpscerts.Generate("cert.pem", "key.pem", "127.0.0.1:8081"); err != nil {
 			log.Fatal("Error: Couldn't create https certs.")
 		}
 	}
@@ -55,7 +54,7 @@ func newRouter() *mux.Router {
 
 	sub := router.PathPrefix("/client").Subrouter()
 
-	sub.HandleFunc("/allRecipes", checkSession(getRecipes)).Methods(GET)
+	sub.HandleFunc("/allRecipes", getRecipes).Methods(GET)
 	sub.HandleFunc("/searchRecipes", checkSession(searchRecipes)).Methods(GET)
 	sub.HandleFunc("/fridgeContent", checkSession(getFoodInfo)).Methods(GET)
 

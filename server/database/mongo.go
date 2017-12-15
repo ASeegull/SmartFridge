@@ -61,7 +61,7 @@ func GetFoodsInFridge(containersID []string) ([]FoodInfo, error) {
 		var agent FoodAgent
 
 		if err := c.Find(bson.M{"agentid": value}).One(&agent); err != nil {
-			return nil, err
+			continue
 		}
 
 		foods = append(foods, FoodInfo{agent.Product, agent.Weight})
