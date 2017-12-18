@@ -253,7 +253,7 @@ OUTER:
 				return nil, err
 			}
 			if contains(productNameSlice, name) && amount <= productMap[name] {
-				recipe.Ingred = append(recipe.Ingred, strconv.Itoa(amount), unit, name)
+				recipe.Ingred = append(recipe.Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
 			} else {
 				continue OUTER
 			}
