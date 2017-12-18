@@ -1,6 +1,7 @@
 package database
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,7 +10,6 @@ import (
 	"github.com/ASeegull/SmartFridge/server/config"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
-	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 )
 
@@ -60,12 +60,15 @@ func RegisterNewUser(login string, passHash string) (string, error) {
 
 //ClientLogin checks login and pass for client
 func ClientLogin(login string, pass string) error {
+	var err error
 	user := User{}
-	err := db.Where("login = ?", login).Find(&user).Error
-	if err != nil {
-		return errors.Wrap(err, "login not found")
-	}
-	if strings.TrimRight(pass, "\n") != user.Password {
+	err = db.Where("login = ?", login).Find(&user).Error
+	switch {
+	case err != nil:
+		return err
+	case user.ID == "":
+		return errors.New("login not found")
+	case strings.TrimRight(pass, "\n") != user.Password:
 		return errors.New("wrong password")
 	}
 	return nil
@@ -73,10 +76,11 @@ func ClientLogin(login string, pass string) error {
 
 //GetUserID checks login and pass for client
 func GetUserID(login string) (string, error) {
+	var err error
 	user := User{}
-	err := db.Where("login = ?", login).Find(&user).Error
+	err = db.Where("login = ?", login).Find(&user).Error
 	if err != nil {
-		return "", errors.Wrapf(err, "cannot find user with login %s", login)
+		return "", err
 	}
 	return user.ID, nil
 }
@@ -100,6 +104,7 @@ func RegisterNewAgent(idUser string, idAgent string) error {
 		return errors.New("can not register an agent")
 	}
 	return nil
+
 }
 
 //GetAllAgentsIDForClient returns all agent for clientID as a slice of string
@@ -121,42 +126,18 @@ func GetAllAgentsIDForClient(userID string) ([]string, error) {
 	return agentIds, nil
 }
 
-// GetDefaultExpirationDate queries database and returns
-// avarage shelf time of a product as int in hours
-func GetDefaultExpirationDate(productName string) (int, error) {
+//GetDefaultExplorationDate function returns expiration date a product as time.Time object
+func GetDefaultExplorationDate(productName string) (time.Time, error) {
+	var err error
 	product := Product{}
-	err := db.Where("name LIKE ?", strings.ToLower(productName)).First(&product).Error
-	if err != nil {
-		return 0, errors.Wrapf(err, "for the product %s", productName)
-	}
-	if product.ShelfLife == 0 {
-		return 0, errors.Errorf("there is no shelflife for the product %s", productName)
-	}
-	return product.ShelfLife, nil
-}
-
-// SetExpirationDate sets default expiration date if none is provided by user
-func SetExpirationDate(shelftime int) string {
-	return time.Now().Add(time.Duration(shelftime) * time.Duration(24) * time.Hour).Format(time.ANSIC)
-}
-
-// CheckCondition sets Condition of FoodInfo
-// depending on expiration date
-func (product *FoodInfo) CheckCondition() error {
-	expdate, err := time.Parse(time.ANSIC, product.Expires)
-	if err != nil {
-		return err
-	}
-	delta := time.Now().Sub(expdate).Hours()
+	err = db.Where("name LIKE ?", strings.ToLower(productName)).First(&product).Error
 	switch {
-	case delta < 48:
-		product.Condition = "warn"
-	case delta < 0:
-		product.Condition = "expired"
-	default:
-		product.Condition = "ok"
+	case err != nil:
+		return time.Time{}, err
+	case product.Name == "":
+		return time.Time{}, errors.New("product not found")
 	}
-	return nil
+	return time.Now().Add(time.Hour * 24 * time.Duration(product.ShelfLife)), nil
 }
 
 //AllRecipes functions returns all Recipes with ingridients
@@ -192,8 +173,8 @@ func AllRecipes() ([]Recepie, error) {
 	return recipes, nil
 }
 
-// GetAllProductsNames returns a slice, containing IDs of all products
-func GetAllProductsNames() ([]string, error) {
+//GetAllProductsNames returns a slice, containing IDs of all products
+func GetAllProductsName() ([]string, error) {
 	var err error
 	var productName string
 	productNames := make([]string, 0, prognosedNumOfProducts)
@@ -253,7 +234,7 @@ OUTER:
 				return nil, err
 			}
 			if contains(productNameSlice, name) && amount <= productMap[name] {
-				recipe.Ingred = append(recipe.Ingred, strconv.Itoa(amount), unit, name)
+				recipe.Ingred = append(recipe.Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
 			} else {
 				continue OUTER
 			}

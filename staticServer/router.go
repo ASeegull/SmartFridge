@@ -30,6 +30,7 @@ func Run(cfg *config.Config) {
 	port := os.Getenv("PORT")
 	if port != "" {
 		// production
+
 		log.WithField("port", port).Info("Server started")
 		log.Fatal(http.ListenAndServe(":"+port, r))
 	} else {

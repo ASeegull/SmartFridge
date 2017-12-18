@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/securecookie"
@@ -10,16 +11,23 @@ import (
 var hashKey = securecookie.GenerateRandomKey(64)
 var blockKey = securecookie.GenerateRandomKey(32)
 
-//var path = "DbPath"
-//var store = sessions.NewFilesystemStore(path,hashKey,blockKey)
 var store = sessions.NewCookieStore(hashKey, blockKey)
 
-const sessionName = "sessionName"
+const (
+	sessionName = "sessionName"
+	ID          = "userID"
+)
 
 func sessionSet(w http.ResponseWriter, r *http.Request, userID string) error {
 	session, err := store.Get(r, sessionName)
 	if err != nil {
-		return err
+		session.Options = &sessions.Options{
+			MaxAge:   3600,
+			Path:     "/",
+			HttpOnly: true,
+		}
+		session.Values[ID] = userID
+		return session.Save(r, w)
 	}
 
 	session.Options = &sessions.Options{
@@ -27,7 +35,7 @@ func sessionSet(w http.ResponseWriter, r *http.Request, userID string) error {
 		Path:     "/",
 		HttpOnly: true,
 	}
-	session.Values["userID"] = userID
+	session.Values[ID] = userID
 	return session.Save(r, w)
 }
 
@@ -45,16 +53,27 @@ func closeSession(w http.ResponseWriter, r *http.Request) error {
 	return session.Save(r, w)
 }
 
-func checkOutUser(w http.ResponseWriter, r *http.Request) (bool, error) {
+func isNewSession(w http.ResponseWriter, r *http.Request) (bool, error) {
 	session, err := store.Get(r, sessionName)
 	if err != nil {
 		return false, err
 	}
-	if session.IsNew == true {
+
+	if session.IsNew {
 		session.Options = &sessions.Options{
 			MaxAge: -1,
 		}
-		return false, session.Save(r, w)
+		return true, session.Save(r, w)
 	}
-	return true, nil
+
+	return false, nil
+}
+
+func getUserID(r *http.Request) (string, error) {
+	session, err := store.Get(r, sessionName)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprint(session.Values[ID]), err
 }

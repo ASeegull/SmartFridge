@@ -1,11 +1,11 @@
 package database
 
+import "encoding/json"
+
 //FoodInfo is example struct for agent
 type FoodInfo struct {
-	Product   string `bson:"product"`
-	Weight    int32  `bson:"weight"`
-	Expires   string `bson:"stateExpires"`
-	Condition string `bson:"condition"`
+	Product string `bson:"product"`
+	Weight  int32  `bson:"weight"`
 }
 
 //FoodAgent is example struct for agent
@@ -15,7 +15,7 @@ type FoodAgent struct {
 	AgentID      string `bson:"agentid"`
 	Product      string `bson:"productid"`
 	Weight       int32  `bson:"weight"`
-	StateExpires string `bson:"stateExpires"`
+	StateExpires int32  `bson:"stateExpires"`
 }
 
 //MUnit represents units of measure used for products
@@ -98,4 +98,9 @@ func (log *Login) LogIn() error {
 func (log *Login) Register() error {
 	RegisterNewUser(log.UserName, log.Pass)
 	return nil
+}
+
+//Unmarshalling unmarchals to this struct
+func (log Login) Unmarshalling(data []byte) error {
+	return json.Unmarshal(data, &log)
 }
