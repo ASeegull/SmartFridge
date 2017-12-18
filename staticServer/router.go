@@ -2,6 +2,7 @@ package staticServer
 
 import (
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/ASeegull/SmartFridge/staticServer/config"
@@ -22,22 +23,22 @@ func newRouter(staticPath string) *mux.Router {
 // Run starts servers for http and https connections
 func Run(cfg *config.Config) {
 
-	//var wg sync.WaitGroup
+	var wg sync.WaitGroup
 
-	//wg.Add(2)
+	wg.Add(2)
 	r := newRouter(cfg.StaticPath)
-	//port := os.Getenv("PORT")
-	//if port != "" {
-	// production
-	port := "15080"
-	log.WithField("port", port).Info("Server started")
-	log.Fatal(http.ListenAndServe(":"+port, r))
-	//} else {
-	//	// dev
-	//	serve(wg, cfg, r)
-	//}
-	//
-	//wg.Wait()
+	port := os.Getenv("PORT")
+	if port != "" {
+		// production
+
+		log.WithField("port", port).Info("Server started")
+		log.Fatal(http.ListenAndServe(":"+port, r))
+	} else {
+		// dev
+		serve(wg, cfg, r)
+	}
+
+	wg.Wait()
 }
 
 func serve(wg sync.WaitGroup, cfg *config.Config, r *mux.Router) {
