@@ -38,13 +38,13 @@ func sendErrorMsg(w http.ResponseWriter, err error, status int) {
 func checkSession(h http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		status, err := isNewSession(w, r)
+		isNew, err := isNewSession(w, r)
 		if err != nil {
 			sendErrorMsg(w, err, http.StatusInternalServerError)
 			return
 		}
 
-		if status {
+		if isNew {
 			sendErrorMsg(w, err, http.StatusUnauthorized)
 			return
 		}
