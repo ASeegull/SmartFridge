@@ -3,16 +3,13 @@ package agent
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
-	"github.com/satori/go.uuid"
 
 	pb "github.com/ASeegull/SmartFridge/protoStruct"
 	log "github.com/sirupsen/logrus"
@@ -26,16 +23,15 @@ type controls struct {
 	setup        *pb.Setup
 }
 
-//Start runs agent
-func Start(cfg *Config, ctx context.Context) error {
+// Start runs agent
+func Start(ctx context.Context, cfg *Config) error {
 	agent := &controls{}
-	var err error
 	// Get random agent ID and log it
 	agent.tokenRequest = agentInit()
 
 	// Get endpoints from config and make request to server to register agent entity
 	setupURL, wsURL := cfg.GetEndPoints()
-	agent.setup, err = agentRegistration(setupURL, agent.tokenRequest)
+	err := agentRegistration(setupURL, agent.tokenRequest)
 	if err != nil {
 		return errors.Wrapf(err, "could not set token for %s", setupURL)
 	}
@@ -44,7 +40,7 @@ func Start(cfg *Config, ctx context.Context) error {
 	dialer := websocket.Dialer{ReadBufferSize: 1024 * 4, WriteBufferSize: 1024 * 4}
 	conn, resp, err := dialer.Dial(wsURL, nil)
 	if err != nil || resp.StatusCode != http.StatusSwitchingProtocols {
-		return errors.Wrapf(err, "could not esteblish ws connection on %s. Status: %s", wsURL, resp.Status)
+		return errors.Wrapf(err, "could not establish ws connection on %s. Status: %s", wsURL, resp.Status)
 	}
 	agent.conn = conn
 	defer agent.conn.Close()
@@ -59,36 +55,29 @@ func Start(cfg *Config, ctx context.Context) error {
 	return nil
 }
 
-func agentRegistration(tokenSetupURL string, req *pb.Request) (*pb.Setup, error) {
+func agentRegistration(tokenSetupURL string, req *pb.Request) error {
 	data, err := req.MarshalStruct()
 	if err != nil {
-		return nil, errors.Wrapf(err, "could marshal request %+v", req)
+		return errors.Wrapf(err, "could marshal request %+v", req)
 	}
 
 	response, err := http.Post(tokenSetupURL, "application/octet-stream", bytes.NewBuffer(data))
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not send token to %s", tokenSetupURL)
+		return errors.Wrapf(err, "could not send token to %s", tokenSetupURL)
 	}
 
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, errors.Wrapf(err, "could not read response.body")
+	if response.StatusCode != http.StatusOK {
+		return errors.New("could not register to the database")
 	}
-	defer response.Body.Close()
-
-	setup := &pb.Setup{}
-	if err = proto.Unmarshal(body, setup); err != nil {
-		return nil, errors.Wrapf(err, "could not unmarshal setup")
-	}
-
-	log.Info("Agent successfully registered and configured")
-	return setup, nil
+	log.Info("Agent successfully registered")
+	return nil
 }
 
 func streamAgentState(ctx context.Context, agent *controls, messages chan []byte) {
 	log.Info("Starting streaming agent state")
 	agentInfo := foodAgentGenerator(agent.tokenRequest, agent.setup)
 	defer agent.wg.Done()
+
 	ticker := time.NewTicker(time.Second * time.Duration(agent.setup.Heartbeat))
 	for {
 		select {
@@ -107,15 +96,18 @@ func streamAgentState(ctx context.Context, agent *controls, messages chan []byte
 				return
 			}
 			log.Info("Agent state sent")
+		case <-messages:
+			ticker.Stop()
+			ticker = time.NewTicker(time.Second * time.Duration(agent.setup.Heartbeat))
 		}
 	}
 }
 
-func agentInit() *pb.Request {
-	id := uuid.NewV4().String()
-	log.Infof("Container %s is starting", id)
-	return &pb.Request{id}
-}
+// func agentInit() *pb.Request {
+// 	id := uuid.NewV4().String()
+// 	log.Infof("Container %s is starting", id)
+// 	return &pb.Request{id}
+// }
 
 func timeReader(ctx context.Context, agent *controls, messages chan []byte) {
 	log.Info("Starting reading from connection")
@@ -137,10 +129,11 @@ func timeReader(ctx context.Context, agent *controls, messages chan []byte) {
 					break
 				}
 
-				if err = agent.setup.UnmarshalToStruct(message); err != nil {
-					log.Errorf("failed to unmarshal messages: %s", err)
-					return
+				setup := &pb.Setup{}
+				if err = setup.UnmarshalToStruct(message); err != nil {
+					break
 				}
+				log.Info("Agent successfully registered and configured")
 				messages <- message
 			}
 		}

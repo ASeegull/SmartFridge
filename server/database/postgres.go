@@ -92,6 +92,21 @@ func CheckAgent(idUser string, idAgent string) (bool, error) {
 	return agent.ID != "", nil
 }
 
+// GetAgentOwner returns user ID registered for particular agent
+func GetAgentOwner(agentID string) (string, error) {
+	agent := Agent{}
+	err := db.Where("agents.id = ?", agentID).Find(&agent).Error
+	// If agent has no user id, thats ok, user will sign up soon
+	if err == gorm.ErrRecordNotFound {
+		return "", nil
+	}
+
+	if err != nil {
+		return "", err
+	}
+	return agent.UserID, nil
+}
+
 //RegisterNewAgent adds a new agent to user, returns nil if adding was successful
 func RegisterNewAgent(idUser string, idAgent string) error {
 	agent := Agent{ID: idAgent, UserID: idUser}

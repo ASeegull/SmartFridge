@@ -2,21 +2,20 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"math/rand"
 	"net/http"
-	"time"
+	"os"
+	"os/signal"
+	"sync"
 
 	"github.com/ASeegull/SmartFridge/server/database"
-	"github.com/davecheney/errors"
 	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	pb "github.com/ASeegull/SmartFridge/protoStruct"
 )
 
-//mock data
+// mock data
 const (
 	defaultHeartBeat = 3
 	adminID          = "9079744c-ab87-4083-8400-19c14628c26f"
@@ -41,61 +40,18 @@ func checkSession(h http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
-func agentAuthentication(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		sendErrorMsg(w, err, http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
-
-	pbRequest := pb.Request{}
-	if err = pbRequest.UnmarshalToStruct(body); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
-		return
-	}
-
-	//get product is mock. user has to set it in server page
-	productName, err := getProduct()
-	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
-		return
-	}
-
-	//adminID is mock. Here must be call to postgress db (table user - agentsID)
-	userID := adminID
-	if err := database.RegisterNewAgent(userID, pbRequest.AgentID); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
-		return
-	}
-
-	resp := pb.Setup{}
-	resp.SetParameters(pbRequest.AgentID, userID, *productName, defaultHeartBeat)
-
-	data, err := resp.MarshalStruct()
-	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
-		return
-	}
-
-	_, err = w.Write(data)
-	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
-		return
-	}
+// Container holds ws connection for instance of agent and chan to send done signal to goroutines
+type Container struct {
+	sync.Mutex
+	sync.WaitGroup
+	Conn     *websocket.Conn
+	Setup    *pb.Setup
+	Shutdown chan struct{}
 }
 
-//getProduct is mock. Method returns random product from postgres DB (table Products)
-func getProduct() (*string, error) {
+// AgentsList contains all connected Agents for quick access to them
 
-	IDs, err := database.GetAllProductsNames()
-	if err != nil {
-		return nil, err
-	}
-	rand.Seed(time.Now().UTC().UnixNano())
-
-	return &IDs[rand.Intn(len(IDs))], nil
-}
+var agentsList = &map[string]*Container{}
 
 func createWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -104,61 +60,97 @@ func createWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("New websocket connect with %s", r.Host)
+	log.Infof("websocket connection with %s established", r.Host)
 
-	go wsListener(conn)
-}
-
-func wsListener(conn *websocket.Conn) {
-	var err error
-
-	defer conn.Close()
-
-	defer func() {
-		if err != nil {
-			if err = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseInternalServerErr, err.Error())); err != nil {
-				log.Error(err)
-			}
-		}
+	done := make(chan struct{})
+	sign := make(chan os.Signal)
+	signal.Notify(sign, os.Interrupt)
+	go func() {
+		<-sign
+		log.Info("SIGINT recieved")
+		done <- struct{}{}
 	}()
 
+	id, err := agentAuthentication(conn)
+	agent := &Container{Conn: conn, Shutdown: done}
+	if _, ok := (*agentsList)[id]; !ok {
+		(*agentsList)[id] = agent
+	}
+
+	agent.Add(1)
+	go agent.ReadAgentState()
+	agent.Wait()
+}
+
+func agentAuthentication(conn *websocket.Conn) (string, error) {
+	t, data, err := conn.ReadMessage()
+	if err != nil || t != websocket.BinaryMessage {
+		return "", errors.Wrapf(err, "cannot read from websocket %v")
+	}
+
+	agentState := &pb.Agentstate{}
+
+	if err = agentState.UnmarshalToStruct(data); err != nil {
+		return "", errors.Wrapf(err, "unmarshal data from websocket error: %v")
+	}
+
+	return agentState.AgentID, nil
+}
+
+// SendAgentSetup takes new settings and sends them to the specified agent via existing websocket connection
+func SendAgentSetup(id string, settings *pb.Setup) error {
+	agent := (*agentsList)[id]
+
+	{
+		agent.Lock()
+		agent.Setup = settings
+		agent.Unlock()
+	}
+
+	msg, err := settings.MarshalStruct()
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal setup")
+	}
+	return agent.Conn.WriteMessage(websocket.BinaryMessage, msg)
+}
+
+// ReadAgentState reads messages from agent and saves state to mongodb
+func (c *Container) ReadAgentState() {
+	defer c.Done()
+	defer c.Conn.Close()
 	for {
-		var data []byte
-		var t int
-
-		t, data, err = conn.ReadMessage()
-		if err != nil {
-			log.Errorf("cannot read from websocket %v", err)
+		select {
+		case <-c.Shutdown:
 			return
-		}
-		log.Infof("%d", t)
+		default:
+			t, data, err := c.Conn.ReadMessage()
+			if err != nil {
+				log.Errorf("cannot read from websocket %v", err)
+				return
+			}
 
-		if t == websocket.CloseGoingAway {
-			log.Errorf("closed ws connection with %s", conn.RemoteAddr())
-			return
-		}
+			if t == websocket.CloseGoingAway {
+				log.Errorf("closed ws connection with %s", c.Conn.RemoteAddr())
+				return
+			}
 
-		agentState := &pb.Agentstate{}
+			agentState := &pb.Agentstate{}
 
-		if err = agentState.UnmarshalToStruct(data); err != nil {
-			log.Errorf("unmarshal data from websocket error: %v", err)
-			return
-		}
-		log.Infof("agent state: %v", agentState)
+			if err = agentState.UnmarshalToStruct(data); err != nil {
+				log.Error(errors.Wrap(err, "failed to unmarshal agentstate"))
+				return
+			}
 
-		if !agentState.CheckToken() {
-			log.Error(errors.New("unauthorized agent detected"))
-			return
-		}
+			if !agentState.CheckToken() {
+				log.Error(errors.New("unauthorized agent detected"))
+				return
+			}
 
-		if err = database.SaveState(agentState); err != nil {
-			log.Error(errors.New("save to db problem: "))
-			return
-		}
-
-		if err := conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("%s %s", time.Now().Format("2-Mon-Jan-2006-15:04:05"), "Ok!"))); err != nil {
-			log.Error(err)
-			return
+			log.Infof("agent state: %v", agentState)
+			if err = database.SaveState(agentState); err != nil {
+				log.Error(errors.Wrap(err, "saving to db failed: "))
+				return
+			}
 		}
 	}
 }
@@ -170,9 +162,9 @@ func getFoodInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := &database.UserID{ID: adminID}
-
 	defer r.Body.Close()
+
+	userID := &database.UserID{ID: adminID}
 
 	foods, err := userID.GetFoodsInFridge()
 	if err != nil {
@@ -259,13 +251,13 @@ func clientRegister(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := database.RegisterNewUser(newUser.UserName, newUser.Pass)
 	if err != nil {
-		log.Error(errors.Annotate(err, "User already exist"))
+		log.Error(errors.Wrap(err, "user already exist"))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err := sessionSet(w, r, userID); err != nil {
-		log.Error(errors.Annotate(err, "Couldn't create session"))
+		log.Error(errors.Wrap(err, "couldn't create session"))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

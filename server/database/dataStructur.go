@@ -1,6 +1,6 @@
 package database
 
-//FoodInfo is example struct for agent
+// FoodInfo is example struct for agent
 type FoodInfo struct {
 	Product   string `bson:"product"`
 	Weight    int32  `bson:"weight"`
@@ -8,7 +8,7 @@ type FoodInfo struct {
 	Condition string `bson:"condition"`
 }
 
-//FoodAgent is example struct for agent
+// FoodAgent is example struct for agent
 type FoodAgent struct {
 	Token        string `bson:"token"`
 	UserID       string `bson:"userid"`
@@ -18,26 +18,26 @@ type FoodAgent struct {
 	StateExpires string `bson:"stateExpires"`
 }
 
-//MUnit represents units of measure used for products
+// MUnit represents units of measure used for products
 type MUnit struct {
 	ID   int
 	Unit string
 }
 
-//Agent represents an agent entity
+// Agent represents an agent entity
 type Agent struct {
 	ID     string
 	UserID string
 }
 
-//Ingridient represents an ingredient in a recepie
+// Ingridient represents an ingredient in a recepie
 type Ingridient struct {
 	ProductID int
 	RecipeID  int
 	Amount    int
 }
 
-//Product represents an product
+// Product represents an product
 type Product struct {
 	ID        int
 	Name      string
@@ -45,7 +45,7 @@ type Product struct {
 	Units     int
 }
 
-//Recepie represents a recepie
+// Recepie represents a recepie
 type Recepie struct {
 	ID              int      `json:"-"`
 	RecName         string   `json:"title"`
@@ -55,7 +55,7 @@ type Recepie struct {
 	Ingred          []string `gorm:"-" json:"ingredients"`
 }
 
-//User represents a user
+// User represents a user
 type User struct {
 	ID       string
 	Login    string
@@ -63,23 +63,23 @@ type User struct {
 	Role     string
 }
 
-//Login contains username and password
+// Login contains username and password
 type Login struct {
 	UserName string `json:"login"`
 	Pass     string `json:"pass"`
 }
 
-//UserID contains user ID
+// UserID contains user ID
 type UserID struct {
 	ID string `json:"id"`
 }
 
-//GetAllAgentIDs returns all agents ID for this userID
+// GetAllAgentIDs returns all agents ID for this userID
 func (lg *UserID) GetAllAgentIDs() ([]string, error) {
 	return GetAllAgentsIDForClient(lg.ID)
 }
 
-//GetFoodsInFridge returns all food from fridge for this userID
+// GetFoodsInFridge returns all food from fridge for this userID
 func (lg *UserID) GetFoodsInFridge() ([]FoodInfo, error) {
 	IDs, err := lg.GetAllAgentIDs()
 	if err != nil {
@@ -89,12 +89,12 @@ func (lg *UserID) GetFoodsInFridge() ([]FoodInfo, error) {
 	return GetFoodsInFridge(IDs)
 }
 
-//LogIn logged in
+// LogIn logged in
 func (log *Login) LogIn() error {
 	return ClientLogin(log.UserName, log.Pass)
 }
 
-//Register registers new user
+// Register registers new user
 func (log *Login) Register() error {
 	RegisterNewUser(log.UserName, log.Pass)
 	return nil

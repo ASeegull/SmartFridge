@@ -10,10 +10,12 @@ import (
 
 //Config includes config
 type Config struct {
-	Port      string `yaml:"port"`
-	Host      string `yaml:"host"`
-	Websocket string `yaml:"websocket"`
-	RestURI   string `yaml:"restURI"`
+	Port        string `yaml:"port"`
+	Host        string `yaml:"host"`
+	Websocket   string `yaml:"websocket"`
+	RestURI     string `yaml:"restURI"`
+	PublicToken string `yaml:"publicToken"`
+	AgentID     string
 }
 
 //ReadConfig reads config from file
