@@ -321,8 +321,7 @@ func getProductByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func getProductByName(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	name := vars["name"]
+	name := mux.Vars(r)["name"]
 	product, err := database.FindProductByName(name)
 	if err != nil {
 		sendErrorMsg(w, err, http.StatusInternalServerError)

@@ -277,8 +277,7 @@ func contains(slice []string, v string) bool {
 func AddProduct(name string, shelfLife int, units string) error {
 	id := uuid.NewV4().String()
 	product := Product{ID: id, Name: name, ShelfLife: shelfLife, Units: units}
-	err := db.Create(&product).Error
-	return err
+	return db.Create(&product).Error
 }
 
 //FindProductByID returns a pointer to the product
@@ -310,20 +309,18 @@ func UpdateProduct(id string, name string, shelfLife int, units string) error {
 	if name != "" {
 		product.Name = name
 	}
-	if shelfLife != 0 {
+	if shelfLife > 0 {
 		product.ShelfLife = shelfLife
 	}
 	if units != "" {
 		product.Units = units
 	}
-	err = db.Save(&product).Error
-	return err
+	return db.Save(&product).Error
 }
 
 //DeleteProductByID updates information about a product, returns nil if deleting was successful
 func DeleteProductByID(id string) error {
-	err := db.Where("id = ?", id).Delete(Product{}).Error
-	return err
+	return db.Where("id = ?", id).Delete(Product{}).Error
 }
 
 //AllProducts returns all products from the database
