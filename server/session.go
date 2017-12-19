@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/securecookie"
@@ -74,6 +73,5 @@ func getUserID(r *http.Request) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	return fmt.Sprint(session.Values[ID]), err
+	return session.Values[ID].(string), err
 }
