@@ -20,7 +20,6 @@ import (
 const (
 	defaultHeartBeat = 3
 	adminID          = "9079744c-ab87-4083-8400-19c14628c26f"
-	clientURI        = "http://localhost:15080"
 )
 
 func sendErrorMsg(w http.ResponseWriter, err error, status int) {
@@ -28,10 +27,6 @@ func sendErrorMsg(w http.ResponseWriter, err error, status int) {
 		log.Error(err)
 	}
 
-	//for local work
-	//w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	//w.Header().Set("Access-Control-Allow-Credentials", "true")
-	//w.Header().Set("Access-Control-Allow-Origin", clientURI)
 	w.WriteHeader(status)
 }
 
@@ -187,10 +182,6 @@ func getFoodInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//for local work
-	//w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	//w.Header().Set("Access-Control-Allow-Credentials", "true")
-	//w.Header().Set("Access-Control-Allow-Origin", clientURI)
 	if err = json.NewEncoder(w).Encode(foods); err != nil {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
 	}
@@ -210,10 +201,6 @@ func getRecipes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//for local work
-	//w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	//w.Header().Set("Access-Control-Allow-Credentials", "true")
-	//w.Header().Set("Access-Control-Allow-Origin", clientURI)
 	if _, err = w.Write(data); err != nil {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
 	}
@@ -240,10 +227,6 @@ func searchRecipes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//for local work
-	//w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	//w.Header().Set("Access-Control-Allow-Credentials", "true")
-	//w.Header().Set("Access-Control-Allow-Origin", clientURI)
 	if err = json.NewEncoder(w).Encode(recipes); err != nil {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
 	}
