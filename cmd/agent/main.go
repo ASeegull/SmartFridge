@@ -12,22 +12,28 @@ import (
 
 func main() {
 	cfgPath := flag.String("config", "agent/config.yaml", "Location of config File")
+	agentID := flag.String("agentID", "12345", "Set agent ID to run application")
 
 	flag.Parse()
+
 	cfg, err := agent.ReadConfig(*cfgPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Saves agent id from flag to config object to pass further
+	cfg.AgentID = *agentID
+
 	ctx, cancel := context.WithCancel(context.Background())
 	sign := make(chan os.Signal)
 	signal.Notify(sign, os.Interrupt)
-	go func(ctx context.Context, sign chan os.Signal) {
+	go func() {
 		<-sign
+		log.Info("SIGINT recieved")
 		cancel()
-	}(ctx, sign)
+	}()
 
-	if err = agent.Start(cfg, ctx); err != nil {
+	if err = agent.Start(ctx, cfg); err != nil {
 		log.Fatal(err)
 	}
 }

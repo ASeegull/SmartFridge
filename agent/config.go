@@ -10,10 +10,12 @@ import (
 
 //Config includes config
 type Config struct {
-	Port      string `yaml:"port"`
-	Host      string `yaml:"host"`
-	Websocket string `yaml:"websocket"`
-	RestURI   string `yaml:"restURI"`
+	Port        string `yaml:"port"`
+	Host        string `yaml:"host"`
+	Websocket   string `yaml:"websocket"`
+	RestURI     string `yaml:"restURI"`
+	PublicToken string `yaml:"publicToken"`
+	AgentID     string
 }
 
 //ReadConfig reads config from file
@@ -31,7 +33,6 @@ func ReadConfig(configPath string) (*Config, error) {
 }
 
 // GetEndPoints returns API endpoint to call for setup and address to call to establish websocket connection
-func (cfg *Config) GetEndPoints() (tokenSetupURL, wsURL string) {
-	return fmt.Sprintf("%s:%s%s", cfg.Host, cfg.Port, cfg.RestURI),
-		fmt.Sprintf("%s:%s%s", cfg.Websocket, cfg.Port, cfg.RestURI)
+func (cfg *Config) GetEndPoints() string {
+	return fmt.Sprintf("%s:%s%s", cfg.Websocket, cfg.Port, cfg.RestURI)
 }

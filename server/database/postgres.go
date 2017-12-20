@@ -1,16 +1,19 @@
 package database
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	pb "github.com/ASeegull/SmartFridge/protoStruct"
 	"github.com/ASeegull/SmartFridge/server/config"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -20,8 +23,28 @@ const (
 	avgNumOfAgentsOfUser   = 10
 )
 
+const (
+	PublicToken = "verysecrettoken"
+	privateKey  = "muchmoresecrettoken"
+)
+
 var dbinfo string
 var db *gorm.DB
+
+//CheckToken checks tokens conformity
+func CheckToken(agent *pb.Agentstate) bool {
+	return agent.Token == getHash(privateKey+agent.AgentID+agent.UserID)
+}
+
+func getHash(str string) string {
+	hash := md5.Sum([]byte(str))
+	return hex.EncodeToString(hash[:])
+}
+
+// SetToken assigns token to the given agent
+func SetToken(agent *pb.Agentstate) {
+	agent.Token = getHash(privateKey + agent.AgentID + agent.UserID)
+}
 
 //InitPostgersDB initiates connection to postgres gatabase
 func InitPostgersDB(cfg config.PostgresConfigStr) error {
@@ -92,11 +115,26 @@ func CheckAgent(idUser string, idAgent string) (bool, error) {
 	return agent.ID != "", nil
 }
 
+// GetAgentOwner returns user ID registered for particular agent
+func GetAgentOwner(agentID string) (string, error) {
+	agent := Agent{}
+	err := db.Where("agents.id = ?", agentID).Find(&agent).Error
+	// If agent has no user id, thats ok, user will sign up soon
+	if err == gorm.ErrRecordNotFound {
+		return "", nil
+	}
+
+	if err != nil {
+		return "", err
+	}
+	return agent.UserID, nil
+}
+
 //RegisterNewAgent adds a new agent to user, returns nil if adding was successful
-func RegisterNewAgent(idUser string, idAgent string) error {
-	agent := Agent{ID: idAgent, UserID: idUser}
+func RegisterNewAgent(idAgent string) error {
+	agent := Agent{ID: idAgent}
 	rows := db.Create(&agent).RowsAffected
-	if !(rows == 1) {
+	if rows != 1 {
 		return errors.New("can not register an agent")
 	}
 	return nil
