@@ -168,7 +168,7 @@ func AllRecipes() ([]Recepie, error) {
 	rows, err := db.Table("recepies").Select("recepies.id, recepies.rec_name, recepies.description, recepies.coocking_time_min, recepies.complexity, ingridients.amount, m_units.unit, products.name").
 		Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
 		Joins("JOIN products on ingridients.product_id = products.id").
-		Joins("JOIN m_units on m_units.id = products.units").
+		Joins("JOIN m_units on m_units.id = products.units").Order("recepies.id").
 		Rows()
 	if err != nil {
 		return nil, err
@@ -238,7 +238,7 @@ func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
 	copyRec := make([]Recepie, 0, len(recipes))
 
 OUTER:
-	for _, recipe := range recipes {
+	for key, recipe := range recipes {
 		rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
 			Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
 			Joins("JOIN products on ingridients.product_id = products.id").
@@ -253,12 +253,12 @@ OUTER:
 				return nil, err
 			}
 			if contains(productNameSlice, name) && amount <= productMap[name] {
-				recipe.Ingred = append(recipe.Ingred, strconv.Itoa(amount), unit, name)
+				recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount), unit, name)
 			} else {
 				continue OUTER
 			}
 		}
-		copyRec = append(copyRec, recipe)
+		copyRec = append(copyRec, recipes[key])
 	}
 	return copyRec, nil
 }
@@ -293,7 +293,7 @@ func FindProductByID(id string) (*Product, error) {
 //FindProductByName returns a pointer to the product
 func FindProductByName(name string) (*Product, error) {
 	var product Product
-	err := db.First(&product).Where("lower(name) = ?", strings.ToLower(name)).Error
+	err := db.First(&product).Where("LOWER(name) = ?", strings.ToLower(name)).Error
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +307,7 @@ func UpdateProduct(id string, name string, shelfLife int, units string) error {
 		return err
 	}
 	if name != "" {
-		product.Name = name
+		product.Name = strings.ToLower(name)
 	}
 	if shelfLife > 0 {
 		product.ShelfLife = shelfLife
@@ -341,4 +341,39 @@ func AllProducts() ([]Product, error) {
 		products = append(products, Product{ID: id, Name: name, ShelfLife: shelfLife, Units: unit})
 	}
 	return products, nil
+}
+
+//GetRecepiesByProductName function returns all Recipes containing the given product as an ingredient
+func GetRecepiesByProductName(productName string) ([]Recepie, error) {
+	recipes := make([]Recepie, 0, prognosedNumOfRecepies)
+	var name, unit string
+	var amount int
+
+	err := db.Table("recepies").
+		Joins("FULL JOIN ingridients on ingridients.recipe_id = recepies.id").
+		Joins("JOIN products on ingridients.product_id = products.id").
+		Where("LOWER(products.name) LIKE LOWER(?)", productName).
+		Group("recepies.id").
+		Find(&recipes).Error
+	if err != nil {
+		return nil, err
+	}
+	for key, recipe := range recipes {
+		rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
+			Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
+			Joins("JOIN products on ingridients.product_id = products.id").
+			Joins("JOIN m_units on m_units.id = products.units").
+			Where("recepies.id=?", recipe.ID).Rows()
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			err := rows.Scan(&amount, &unit, &name)
+			if err != nil {
+				return nil, err
+			}
+			recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount), unit, name)
+		}
+	}
+	return recipes, nil
 }

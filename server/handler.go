@@ -361,3 +361,23 @@ func deleteProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func getRecipesByProductName(w http.ResponseWriter, r *http.Request) {
+	productName := mux.Vars(r)["productName"]
+	recipes, err := database.GetRecepiesByProductName(productName)
+
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	data, err := json.Marshal(recipes)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	if _, err = w.Write(data); err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+	}
+}
