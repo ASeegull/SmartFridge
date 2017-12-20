@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	pb "github.com/ASeegull/SmartFridge/protoStruct"
+	"github.com/gorilla/mux"
 )
 
 //mock data
@@ -295,4 +296,115 @@ func clientRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sendErrorMsg(w, nil, http.StatusOK)
+}
+
+func productAdd(w http.ResponseWriter, r *http.Request) {
+	newProduct := &database.Product{}
+	err := json.NewDecoder(r.Body).Decode(&newProduct)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+	err = database.AddProduct(newProduct.Name, newProduct.ShelfLife, newProduct.Units)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func getAllProducts(w http.ResponseWriter, r *http.Request) {
+	products, err := database.AllProducts()
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+	data, err := json.Marshal(products)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+	if _, err = w.Write(data); err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+	}
+}
+
+func getProductByID(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	ID := vars["id"]
+	product, err := database.FindProductByID(ID)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+	data, err := json.Marshal(product)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+	if _, err = w.Write(data); err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+	}
+}
+
+func getProductByName(w http.ResponseWriter, r *http.Request) {
+	name := mux.Vars(r)["name"]
+	product, err := database.FindProductByName(name)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+	data, err := json.Marshal(product)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+	if _, err = w.Write(data); err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+	}
+}
+
+func productUpdate(w http.ResponseWriter, r *http.Request) {
+	newProduct := &database.Product{}
+	err := json.NewDecoder(r.Body).Decode(&newProduct)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+	err = database.UpdateProduct(newProduct.ID, newProduct.Name, newProduct.ShelfLife, newProduct.Units)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func deleteProduct(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	ID := vars["id"]
+	err := database.DeleteProductByID(ID)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+}
+
+func getRecipesByProductName(w http.ResponseWriter, r *http.Request) {
+	productName := mux.Vars(r)["productName"]
+	recipes, err := database.GetRecepiesByProductName(productName)
+
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	data, err := json.Marshal(recipes)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	if _, err = w.Write(data); err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+	}
 }
