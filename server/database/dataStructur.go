@@ -20,7 +20,7 @@ type FoodAgent struct {
 
 //MUnit represents units of measure used for products
 type MUnit struct {
-	ID   int
+	ID   string
 	Unit string
 }
 
@@ -32,22 +32,22 @@ type Agent struct {
 
 //Ingridient represents an ingredient in a recepie
 type Ingridient struct {
-	ProductID int
-	RecipeID  int
+	ProductID string
+	RecipeID  string
 	Amount    int
 }
 
 //Product represents an product
 type Product struct {
-	ID        int
-	Name      string
-	ShelfLife int
-	Units     int
+	ID        string `json:"productID"`
+	Name      string `json:"productName"`
+	ShelfLife int    `json:"productShelfLife"`
+	Units     string `json:"productUnit"`
 }
 
 //Recepie represents a recepie
 type Recepie struct {
-	ID              int      `json:"-"`
+	ID              string   `json:"-"`
 	RecName         string   `json:"title"`
 	Description     string   `json:"description"`
 	CoockingTimeMin int      `json:"coockingTimeMin"`
