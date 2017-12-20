@@ -12,7 +12,7 @@ import (
 
 func main() {
 	cfgPath := flag.String("config", "agent/config.yaml", "Location of config File")
-	agentID := flag.String("agentID", "12345", "Set agent ID if it's a new instance")
+	agentID := flag.String("agentID", "12345", "Set agent ID to run application")
 
 	flag.Parse()
 
@@ -21,6 +21,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Saves agent id from flag to config object to pass further
 	cfg.AgentID = *agentID
 
 	ctx, cancel := context.WithCancel(context.Background())

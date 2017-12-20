@@ -21,6 +21,19 @@ const (
 	adminID          = "9079744c-ab87-4083-8400-19c14628c26f"
 )
 
+// Container holds ws connection for instance of agent and chan to send done signal to goroutines
+type Container struct {
+	sync.Mutex
+	sync.WaitGroup
+	Conn     *websocket.Conn
+	Setup    *pb.Setup
+	Shutdown chan struct{}
+}
+
+// AgentsList contains all connected Agents for quick access to them
+
+var agentsList = &map[string]*Container{}
+
 func sendErrorMsg(w http.ResponseWriter, err error, status int) {
 	log.Error(err)
 	http.Error(w, err.Error(), status)
@@ -40,19 +53,7 @@ func checkSession(h http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
-// Container holds ws connection for instance of agent and chan to send done signal to goroutines
-type Container struct {
-	sync.Mutex
-	sync.WaitGroup
-	Conn     *websocket.Conn
-	Setup    *pb.Setup
-	Shutdown chan struct{}
-}
-
-// AgentsList contains all connected Agents for quick access to them
-
-var agentsList = &map[string]*Container{}
-
+// createWS opens connection with agent and keeps it until the sigint is recieved
 func createWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -92,6 +93,14 @@ func agentAuthentication(conn *websocket.Conn) (string, error) {
 
 	if err = agentState.UnmarshalToStruct(data); err != nil {
 		return "", errors.Wrapf(err, "unmarshal data from websocket error: %v")
+	}
+
+	if agentState.Token == database.PublicToken {
+		if err = database.RegisterNewAgent(agentState.AgentID); err != nil {
+			return "", err
+		}
+	} else {
+
 	}
 
 	return agentState.AgentID, nil

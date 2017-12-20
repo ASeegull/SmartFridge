@@ -1,15 +1,17 @@
 package agent
 
 import (
-	"bytes"
 	"context"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
+	yaml "gopkg.in/yaml.v2"
 
 	pb "github.com/ASeegull/SmartFridge/protoStruct"
 	log "github.com/sirupsen/logrus"
@@ -26,14 +28,14 @@ type controls struct {
 // Start runs agent
 func Start(ctx context.Context, cfg *Config) error {
 	agent := &controls{}
-	// Get random agent ID and log it
-	agent.tokenRequest = agentInit()
 
 	// Get endpoints from config and make request to server to register agent entity
 	setupURL, wsURL := cfg.GetEndPoints()
-	err := agentRegistration(setupURL, agent.tokenRequest)
-	if err != nil {
-		return errors.Wrapf(err, "could not set token for %s", setupURL)
+
+	// Checks if agent is already configured and retrieves current info if available
+	state, err := readPreviousState(cfg.AgentID)
+	if err == os.IsNotExist(err) {
+
 	}
 
 	// Establish ws connection
@@ -42,6 +44,7 @@ func Start(ctx context.Context, cfg *Config) error {
 	if err != nil || resp.StatusCode != http.StatusSwitchingProtocols {
 		return errors.Wrapf(err, "could not establish ws connection on %s. Status: %s", wsURL, resp.Status)
 	}
+
 	agent.conn = conn
 	defer agent.conn.Close()
 	defer resp.Body.Close()
@@ -55,22 +58,22 @@ func Start(ctx context.Context, cfg *Config) error {
 	return nil
 }
 
-func agentRegistration(tokenSetupURL string, req *pb.Request) error {
-	data, err := req.MarshalStruct()
-	if err != nil {
-		return errors.Wrapf(err, "could marshal request %+v", req)
+func readPreviousState(id string) (*pb.Agentstate, error) {
+	state := &pb.Agentstate{}
+	path := "/agentState/" + id + ".yaml"
+	if _, err := os.Stat(path); err != nil {
+		return nil, err
 	}
 
-	response, err := http.Post(tokenSetupURL, "application/octet-stream", bytes.NewBuffer(data))
+	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
-		return errors.Wrapf(err, "could not send token to %s", tokenSetupURL)
+		return nil, errors.Annotatef(err, "could not read yaml file %", path)
 	}
 
-	if response.StatusCode != http.StatusOK {
-		return errors.New("could not register to the database")
+	if err = yaml.Unmarshal(yamlFile, state); err != nil {
+		return nil, errors.Annotatef(err, "could not decode config file %", configPath)
 	}
-	log.Info("Agent successfully registered")
-	return nil
+	return config, nil
 }
 
 func streamAgentState(ctx context.Context, agent *controls, messages chan []byte) {
@@ -102,12 +105,6 @@ func streamAgentState(ctx context.Context, agent *controls, messages chan []byte
 		}
 	}
 }
-
-// func agentInit() *pb.Request {
-// 	id := uuid.NewV4().String()
-// 	log.Infof("Container %s is starting", id)
-// 	return &pb.Request{id}
-// }
 
 func timeReader(ctx context.Context, agent *controls, messages chan []byte) {
 	log.Info("Starting reading from connection")

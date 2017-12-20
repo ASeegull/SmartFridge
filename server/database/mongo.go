@@ -7,7 +7,7 @@ import (
 
 	"github.com/ASeegull/SmartFridge/server/config"
 	"github.com/davecheney/errors"
-	"gopkg.in/mgo.v2"
+	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
 	pb "github.com/ASeegull/SmartFridge/protoStruct"
@@ -15,6 +15,11 @@ import (
 
 var session *mgo.Session
 var mongoConfig config.MongoConfig
+
+type syncObj struct {
+	sync.WaitGroup
+	sync.Mutex
+}
 
 //InitiateMongoDB sets config for mongoDB
 func InitiateMongoDB(cfg config.MongoConfig) error {
@@ -53,32 +58,37 @@ func SaveState(agentInfo *pb.Agentstate) error {
 }
 
 //GetFoodsInFridge shows all food in a fridge
-func GetFoodsInFridge(containersID []string) ([]FoodInfo, error) {
-
+func GetFoodsInFridge(containersID []string) ([]FoodInfo, []string) {
+	syn := syncObj{}
 	c := session.DB(mongoConfig.Database).C(mongoConfig.Table)
 	cLen := len(containersID)
 	foods := make([]FoodInfo, cLen)
-	var wg sync.WaitGroup
-	var mutex = &sync.Mutex{}
-	wg.Add(cLen)
+
+	syn.Add(cLen)
 	notFound := make([]string, 0, cLen)
 
 	for i := range containersID {
 
 		go func(val *string) {
 			var agent FoodAgent
-			defer wg.Done()
+			defer syn.Done()
 			if err := c.Find(bson.M{"agentid": val}).One(&agent); err != nil {
-				mutex.Lock()
-				notFound = append(notFound, *val)
-				mutex.Unlock()
+				{
+					syn.Lock()
+					notFound = append(notFound, *val)
+					syn.Unlock()
+				}
 			}
-			mutex.Lock()
-			foods = append(foods, FoodInfo{agent.Product, agent.Weight, agent.StateExpires, ""})
-			mutex.Unlock()
+
+			{
+				syn.Lock()
+				foods = append(foods, FoodInfo{agent.Product, agent.Weight, agent.StateExpires, ""})
+				syn.Unlock()
+			}
+
 		}(&containersID[i])
 
 	}
-	wg.Wait()
-	return foods, nil
+	syn.Wait()
+	return foods, notFound
 }
