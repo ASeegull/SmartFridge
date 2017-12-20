@@ -19,24 +19,19 @@ import (
 
 // Controls is the one struct to rule them all :)
 type controls struct {
-	wg           sync.WaitGroup
-	conn         *websocket.Conn
-	tokenRequest *pb.Request
-	setup        *pb.Setup
+	wg          sync.WaitGroup
+	conn        *websocket.Conn
+	ID          string
+	publicToken string
+	setup       *pb.Setup
 }
 
 // Start runs agent
 func Start(ctx context.Context, cfg *Config) error {
-	agent := &controls{}
+	agent := &controls{ID: cfg.AgentID, publicToken: cfg.PublicToken}
 
 	// Get endpoints from config and make request to server to register agent entity
-	setupURL, wsURL := cfg.GetEndPoints()
-
-	// Checks if agent is already configured and retrieves current info if available
-	state, err := readPreviousState(cfg.AgentID)
-	if err == os.IsNotExist(err) {
-
-	}
+	wsURL := cfg.GetEndPoints()
 
 	// Establish ws connection
 	dialer := websocket.Dialer{ReadBufferSize: 1024 * 4, WriteBufferSize: 1024 * 4}
@@ -51,9 +46,9 @@ func Start(ctx context.Context, cfg *Config) error {
 
 	// Start listening and writing on connection
 	agent.wg.Add(2)
-	messages := make(chan []byte, 1024)
+	messages := make(chan *pb.Setup)
 	go streamAgentState(ctx, agent, messages)
-	go timeReader(ctx, agent, messages)
+	go messageReader(ctx, agent, messages)
 	agent.wg.Wait()
 	return nil
 }
@@ -67,18 +62,23 @@ func readPreviousState(id string) (*pb.Agentstate, error) {
 
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, errors.Annotatef(err, "could not read yaml file %", path)
+		return nil, errors.Wrapf(err, "could not read yaml file %", path)
 	}
 
 	if err = yaml.Unmarshal(yamlFile, state); err != nil {
-		return nil, errors.Annotatef(err, "could not decode config file %", configPath)
+		return nil, errors.Wrapf(err, "could not decode config file %", path)
 	}
-	return config, nil
+	return state, nil
 }
 
-func streamAgentState(ctx context.Context, agent *controls, messages chan []byte) {
+func streamAgentState(ctx context.Context, agent *controls, messages chan *pb.Setup) {
 	log.Info("Starting streaming agent state")
-	agentInfo := foodAgentGenerator(agent.tokenRequest, agent.setup)
+	// Checks if agent is already configured and retrieves current info if available
+	agentInfo, err := readPreviousState(agent.ID)
+	if os.IsNotExist(err) {
+		agentInfo = foodAgentGenerator(agent.ID, agent.publicToken)
+	}
+
 	defer agent.wg.Done()
 
 	ticker := time.NewTicker(time.Second * time.Duration(agent.setup.Heartbeat))
@@ -100,18 +100,22 @@ func streamAgentState(ctx context.Context, agent *controls, messages chan []byte
 			}
 			log.Info("Agent state sent")
 		case <-messages:
+			msg := <-messages
 			ticker.Stop()
+			state := updateAgent(agent.ID, msg)
+			err = saveAgent(state)
 			ticker = time.NewTicker(time.Second * time.Duration(agent.setup.Heartbeat))
 		}
 	}
 }
 
-func timeReader(ctx context.Context, agent *controls, messages chan []byte) {
+func messageReader(ctx context.Context, agent *controls, messages chan *pb.Setup) {
 	log.Info("Starting reading from connection")
 	defer agent.wg.Done()
 	for {
 		select {
 		case <-ctx.Done():
+			close(messages)
 			return
 		default:
 			for {
@@ -130,8 +134,8 @@ func timeReader(ctx context.Context, agent *controls, messages chan []byte) {
 				if err = setup.UnmarshalToStruct(message); err != nil {
 					break
 				}
-				log.Info("Agent successfully registered and configured")
-				messages <- message
+				log.Info("Setup message received")
+				messages <- setup
 			}
 		}
 	}
@@ -139,15 +143,50 @@ func timeReader(ctx context.Context, agent *controls, messages chan []byte) {
 
 var r = rand.New(rand.NewSource(time.Now().UnixNano()))
 
-func foodAgentGenerator(tokenRequest *pb.Request, agentSetup *pb.Setup) *pb.Agentstate {
+// Generates default agent state
+func foodAgentGenerator(id, key string) *pb.Agentstate {
 	log.Info("Generating agent state")
 	agentInfo := &pb.Agentstate{
-		AgentID:      tokenRequest.AgentID,
-		Token:        agentSetup.Token,
-		UserID:       agentSetup.UserID,
-		ProductID:    agentSetup.ProductID,
+		AgentID:      id,
+		Token:        key,
+		UserID:       "",
+		ProductID:    "",
 		Weight:       int32(r.Intn(900) + 1),
 		StateExpires: time.Now().Format(time.ANSIC),
 	}
 	return agentInfo
+}
+
+// Forms agent state to send if new setup is received
+func updateAgent(id string, setup *pb.Setup) *pb.Agentstate {
+	log.Info("Updating agent state")
+	agentInfo := &pb.Agentstate{
+		AgentID:      id,
+		Token:        setup.Token,
+		UserID:       setup.UserID,
+		ProductID:    setup.ProductID,
+		Weight:       int32(r.Intn(900) + 1),
+		StateExpires: setup.StateExpires,
+	}
+	return agentInfo
+}
+
+// Writes to yaml file current state of container
+func saveAgent(state *pb.Agentstate) error {
+	path := "/agentState/" + state.AgentID + ".yaml"
+	config, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		return errors.Wrap(err, "Cannot save agent state to file")
+	}
+	defer config.Close()
+
+	info, err := yaml.Marshal(state)
+	if err != nil {
+		return errors.Wrap(err, "cannot marshal to yaml")
+	}
+	sum, err := config.Write(info)
+	if err != nil || len(info) != sum {
+		return errors.Wrap(err, "failed to write to file")
+	}
+	return nil
 }

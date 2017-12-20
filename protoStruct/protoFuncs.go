@@ -5,7 +5,7 @@ import (
 )
 
 //SetParameters sets parameter to struct and executes token
-func (str *Setup) SetParameters(agentID, userID, productID string, heartbeat int, time string) {
+func (str *Setup) SetParameters(agentID, userID, productID, time string, heartbeat int) {
 	str.UserID = userID
 	str.ProductID = productID
 	str.Heartbeat = int32(heartbeat)
@@ -29,10 +29,5 @@ func (str *Setup) MarshalStruct() ([]byte, error) {
 
 //UnmarshalToStruct unmarshals to struct
 func (str *Setup) UnmarshalToStruct(data []byte) error {
-	return proto.Unmarshal(data, str)
-}
-
-//UnmarshalToStruct unmarshals to struct
-func (str *Request) UnmarshalToStruct(data []byte) error {
 	return proto.Unmarshal(data, str)
 }

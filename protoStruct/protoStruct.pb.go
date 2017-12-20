@@ -30,12 +30,12 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // Regular message, that is sent on heartbeat
 type Agentstate struct {
-	Token        string `protobuf:"bytes,1,opt,name=token" json:"token,omitempty"`
-	AgentID      string `protobuf:"bytes,2,opt,name=agentID" json:"agentID,omitempty"`
-	UserID       string `protobuf:"bytes,3,opt,name=userID" json:"userID,omitempty"`
-	ProductID    string `protobuf:"bytes,4,opt,name=productID" json:"productID,omitempty"`
-	Weight       int32  `protobuf:"varint,5,opt,name=weight" json:"weight,omitempty"`
-	StateExpires string `protobuf:"bytes,6,opt,name=stateExpires" json:"stateExpires,omitempty"`
+	Token        string `protobuf:"bytes,1,opt,name=token" json:"token,omitempty" yaml:"token"`
+	AgentID      string `protobuf:"bytes,2,opt,name=agentID" json:"agentID,omitempty" yaml:"agentID"`
+	UserID       string `protobuf:"bytes,3,opt,name=userID" json:"userID,omitempty" yaml:"userID"`
+	ProductID    string `protobuf:"bytes,4,opt,name=productID" json:"productID,omitempty" json:"productID"`
+	Weight       int32  `protobuf:"varint,5,opt,name=weight" json:"weight,omitempty" yaml:"weight"`
+	StateExpires string `protobuf:"bytes,6,opt,name=stateExpires" json:"stateExpires,omitempty" yaml:"stateExpires"`
 }
 
 func (m *Agentstate) Reset()                    { *m = Agentstate{} }

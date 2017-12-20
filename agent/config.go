@@ -33,7 +33,6 @@ func ReadConfig(configPath string) (*Config, error) {
 }
 
 // GetEndPoints returns API endpoint to call for setup and address to call to establish websocket connection
-func (cfg *Config) GetEndPoints() (tokenSetupURL, wsURL string) {
-	return fmt.Sprintf("%s:%s%s", cfg.Host, cfg.Port, cfg.RestURI),
-		fmt.Sprintf("%s:%s%s", cfg.Websocket, cfg.Port, cfg.RestURI)
+func (cfg *Config) GetEndPoints() string {
+	return fmt.Sprintf("%s:%s%s", cfg.Websocket, cfg.Port, cfg.RestURI)
 }
