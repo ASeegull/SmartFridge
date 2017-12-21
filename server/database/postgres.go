@@ -182,7 +182,7 @@ func AllRecipes() ([]Recepie, error) {
 		}
 		if recName != newRec {
 			ing := make([]string, 0, avgNumrOfIngInRecepie)
-			recipes = append(recipes, Recepie{ID: id, RecName: recName, Complexity: complexity, CoockingTimeMin: coockingTimeMin, Description: description, Ingred: append(ing, strconv.Itoa(amount)+" "+name+" "+unit)})
+			recipes = append(recipes, Recepie{ID: id, RecName: recName, Complexity: complexity, CoockingTimeMin: coockingTimeMin, Description: description, Ingred: append(ing, strconv.Itoa(amount)+" "+unit+" "+name)})
 			newRec = recName
 			k++
 		} else {
@@ -243,7 +243,8 @@ OUTER:
 			Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
 			Joins("JOIN products on ingridients.product_id = products.id").
 			Joins("JOIN m_units on m_units.id = products.units").
-			Where("recepies.id=?", recipe.ID).Rows()
+			Where("recepies.id=?", recipe.ID).
+			Rows()
 		if err != nil {
 			return nil, err
 		}
@@ -254,6 +255,7 @@ OUTER:
 			}
 			if contains(productNameSlice, name) && amount <= productMap[name] {
 				recipe.Ingred = append(recipe.Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
+				recipes[key] = recipe
 			} else {
 				continue OUTER
 			}
@@ -372,7 +374,7 @@ func GetRecepiesByProductName(productName string) ([]Recepie, error) {
 			if err != nil {
 				return nil, err
 			}
-			recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount), unit, name)
+			recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
 		}
 	}
 	return recipes, nil
