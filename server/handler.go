@@ -390,7 +390,7 @@ func recipesByProductNames(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	recipes, err := database.recepiesByProducts(productNames)
+	recipes, err := database.RecepiesByProducts(productNames)
 	if err != nil {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
 		return

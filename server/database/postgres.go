@@ -109,15 +109,18 @@ func GetAllAgentsIDForClient(userID string) ([]string, error) {
 	agentIds := make([]string, 0, avgNumOfAgentsOfUser)
 	rows, err := db.Table("agents").Select("agents.id").Where("agents.user_id=?", userID).Rows()
 	if err != nil {
+		rows.Close()
 		return nil, err
 	}
 	for rows.Next() {
 		err = rows.Scan(&agentID)
 		if err != nil {
+			rows.Close()
 			return nil, err
 		}
 		agentIds = append(agentIds, agentID)
 	}
+	rows.Close()
 	return agentIds, nil
 }
 
@@ -178,17 +181,19 @@ func AllRecipes() ([]Recepie, error) {
 	for rows.Next() {
 		err = rows.Scan(&id, &recName, &description, &coockingTimeMin, &complexity, &amount, &unit, &name)
 		if err != nil {
+			rows.Close()
 			return nil, err
 		}
 		if recName != newRec {
 			ing := make([]string, 0, avgNumrOfIngInRecepie)
-			recipes = append(recipes, Recepie{ID: id, RecName: recName, Complexity: complexity, CoockingTimeMin: coockingTimeMin, Description: description, Ingred: append(ing, strconv.Itoa(amount)+" "+name+" "+unit)})
+			recipes = append(recipes, Recepie{ID: id, RecName: recName, Complexity: complexity, CoockingTimeMin: coockingTimeMin, Description: description, Ingred: append(ing, strconv.Itoa(amount)+" "+unit+" "+name)})
 			newRec = recName
 			k++
 		} else {
 			recipes[k-1].Ingred = append(recipes[k-1].Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
 		}
 	}
+	rows.Close()
 	return recipes, nil
 }
 
@@ -204,10 +209,12 @@ func GetAllProductsNames() ([]string, error) {
 	for rows.Next() {
 		err = rows.Scan(&productName)
 		if err != nil {
+			rows.Close()
 			return nil, err
 		}
 		productNames = append(productNames, productName)
 	}
+	rows.Close()
 	return productNames, nil
 }
 
@@ -218,7 +225,12 @@ func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
 	productMap := make(map[string]int)
 	for _, v := range foodInfoSlice {
 		productNameSlice = append(productNameSlice, strings.ToLower(v.Product))
-		productMap[strings.ToLower(v.Product)] = int(v.Weight)
+		_, ok := productMap[strings.ToLower(v.Product)]
+		if !ok {
+			productMap[strings.ToLower(v.Product)] = int(v.Weight)
+		} else {
+			productMap[strings.ToLower(v.Product)] = productMap[strings.ToLower(v.Product)] + int(v.Weight)
+		}
 	}
 
 	recipes := make([]Recepie, 0, prognosedNumOfRecepies)
@@ -245,16 +257,19 @@ OUTER:
 			Joins("JOIN m_units on m_units.id = products.units").
 			Where("recepies.id=?", recipe.ID).Rows()
 		if err != nil {
+			rows.Close()
 			return nil, err
 		}
 		for rows.Next() {
 			err := rows.Scan(&amount, &unit, &name)
 			if err != nil {
+				rows.Close()
 				return nil, err
 			}
 			if contains(productNameSlice, name) && amount <= productMap[name] {
 				recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount), unit, name)
 			} else {
+				rows.Close()
 				continue OUTER
 			}
 		}
@@ -336,10 +351,12 @@ func AllProducts() ([]Product, error) {
 	for rows.Next() {
 		err = rows.Scan(&id, &name, &shelfLife, &unit)
 		if err != nil {
+			rows.Close()
 			return nil, err
 		}
 		products = append(products, Product{ID: id, Name: name, ShelfLife: shelfLife, Units: unit})
 	}
+	rows.Close()
 	return products, nil
 }
 
@@ -365,21 +382,24 @@ func GetRecepiesByProductName(productName string) ([]Recepie, error) {
 			Joins("JOIN m_units on m_units.id = products.units").
 			Where("recepies.id=?", recipe.ID).Rows()
 		if err != nil {
+			rows.Close()
 			return nil, err
 		}
 		for rows.Next() {
 			err := rows.Scan(&amount, &unit, &name)
 			if err != nil {
+				rows.Close()
 				return nil, err
 			}
 			recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount), unit, name)
 		}
+		rows.Close()
 	}
 	return recipes, nil
 }
 
-//recepiesByProducts takes the slice of chosen product names and returns all recepies, which can be offered
-func recepiesByProducts(products []string) ([]Recepie, error) {
+//RecepiesByProducts takes the slice of chosen product names and returns all recepies, which can be offered
+func RecepiesByProducts(products []string) ([]Recepie, error) {
 	for k, _ := range products {
 		products[k] = strings.ToLower(products[k])
 	}
@@ -403,15 +423,18 @@ func recepiesByProducts(products []string) ([]Recepie, error) {
 			Joins("JOIN m_units on m_units.id = products.units").
 			Where("recepies.id=?", recipe.ID).Rows()
 		if err != nil {
+			rows.Close()
 			return nil, err
 		}
 		for rows.Next() {
 			err := rows.Scan(&amount, &unit, &name)
 			if err != nil {
+				rows.Close()
 				return nil, err
 			}
 			recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount), unit, name)
 		}
+		rows.Close()
 	}
 	return recipes, nil
 }
