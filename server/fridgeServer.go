@@ -59,6 +59,7 @@ func newRouter() *mux.Router {
 	sub.HandleFunc("/searchRecipes", checkSession(searchRecipes)).Methods(GET)
 	sub.HandleFunc("/fridgeContent", checkSession(getFoodInfo)).Methods(GET)
 	sub.HandleFunc("/recipes/getByProductName/{name}", checkSession(getRecipesByProductName)).Methods(GET)
+	sub.HandleFunc("/recipes/recipesByProductNames", checkSession(recipesByProductNames)).Methods(POST)
 
 	sub.HandleFunc("/addProduct", checkSession(productAdd)).Methods(POST)
 	sub.HandleFunc("/getProducts", checkSession(getAllProducts)).Methods(GET)

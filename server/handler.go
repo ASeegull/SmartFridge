@@ -363,7 +363,7 @@ func deleteProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func getRecipesByProductName(w http.ResponseWriter, r *http.Request) {
-	productName := mux.Vars(r)["productName"]
+	productName := mux.Vars(r)["name"]
 	recipes, err := database.GetRecepiesByProductName(productName)
 
 	if err != nil {
@@ -381,3 +381,31 @@ func getRecipesByProductName(w http.ResponseWriter, r *http.Request) {
 		sendErrorMsg(w, err, http.StatusInternalServerError)
 	}
 }
+
+func recipesByProductNames(w http.ResponseWriter, r *http.Request) {
+	var productNames []string
+	err := json.NewDecoder(r.Body).Decode(&productNames)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	recipes, err := database.recepiesByProducts(productNames)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	data, err := json.Marshal(recipes)
+	if err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	if _, err = w.Write(data); err != nil {
+		sendErrorMsg(w, err, http.StatusInternalServerError)
+	}
+}
+
+
+

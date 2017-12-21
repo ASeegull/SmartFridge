@@ -283,7 +283,7 @@ func AddProduct(name string, shelfLife int, units string) error {
 //FindProductByID returns a pointer to the product
 func FindProductByID(id string) (*Product, error) {
 	var product Product
-	err := db.First(&product).Where("id = ?", id).Error
+	err := db.Where("id = ?", id).First(&product).Error
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +293,7 @@ func FindProductByID(id string) (*Product, error) {
 //FindProductByName returns a pointer to the product
 func FindProductByName(name string) (*Product, error) {
 	var product Product
-	err := db.First(&product).Where("LOWER(name) = ?", strings.ToLower(name)).Error
+	err := db.Where("name = ?", strings.ToLower(name)).First(&product).Error
 	if err != nil {
 		return nil, err
 	}
@@ -358,6 +358,44 @@ func GetRecepiesByProductName(productName string) ([]Recepie, error) {
 	if err != nil {
 		return nil, err
 	}
+	for key, recipe := range recipes {
+		rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
+			Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
+			Joins("JOIN products on ingridients.product_id = products.id").
+			Joins("JOIN m_units on m_units.id = products.units").
+			Where("recepies.id=?", recipe.ID).Rows()
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			err := rows.Scan(&amount, &unit, &name)
+			if err != nil {
+				return nil, err
+			}
+			recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount), unit, name)
+		}
+	}
+	return recipes, nil
+}
+
+//recepiesByProducts takes the slice of chosen product names and returns all recepies, which can be offered
+func recepiesByProducts(products []string) ([]Recepie, error) {
+	for k, _ := range products {
+		products[k] = strings.ToLower(products[k])
+	}
+	recipes := make([]Recepie, 0, prognosedNumOfRecepies)
+	err := db.Table("recepies").
+		Joins("FULL JOIN ingridients on ingridients.recipe_id = recepies.id").
+		Joins("JOIN products on ingridients.product_id = products.id").
+		Where("products.name IN (?)", products).
+		Group("recepies.id").
+		Find(&recipes).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var name, unit string
+	var amount int
 	for key, recipe := range recipes {
 		rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
 			Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
