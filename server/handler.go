@@ -420,31 +420,3 @@ func getRecipesByProductName(w http.ResponseWriter, r *http.Request) {
 		sendResponse(w, http.StatusInternalServerError, err)
 	}
 }
-
-func recipesByProductNames(w http.ResponseWriter, r *http.Request) {
-	var productNames []string
-	err := json.NewDecoder(r.Body).Decode(&productNames)
-	if err != nil {
-		sendResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	recipes, err := database.RecepiesByProducts(productNames)
-	if err != nil {
-		sendResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	data, err := json.Marshal(recipes)
-	if err != nil {
-		sendResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	if _, err = w.Write(data); err != nil {
-		sendResponse(w, http.StatusInternalServerError, err)
-	}
-}
-
-
-

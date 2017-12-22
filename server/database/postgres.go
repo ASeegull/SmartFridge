@@ -255,7 +255,8 @@ OUTER:
 			Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
 			Joins("JOIN products on ingridients.product_id = products.id").
 			Joins("JOIN m_units on m_units.id = products.units").
-			Where("recepies.id=?", recipe.ID).Rows()
+			Where("recepies.id=?", recipe.ID).
+			Rows()
 		if err != nil {
 			rows.Close()
 			return nil, err
@@ -267,7 +268,8 @@ OUTER:
 				return nil, err
 			}
 			if contains(productNameSlice, name) && amount <= productMap[name] {
-				recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount), unit, name)
+				recipe.Ingred = append(recipe.Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
+				recipes[key] = recipe
 			} else {
 				rows.Close()
 				continue OUTER
@@ -432,7 +434,7 @@ func RecepiesByProducts(products []string) ([]Recepie, error) {
 				rows.Close()
 				return nil, err
 			}
-			recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount), unit, name)
+			recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
 		}
 		rows.Close()
 	}
