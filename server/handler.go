@@ -17,56 +17,63 @@ import (
 	"github.com/gorilla/mux"
 )
 
-//mock data
 const (
 	defaultHeartBeat = 3
-	adminID          = "9079744c-ab87-4083-8400-19c14628c26f"
 )
 
-func sendErrorMsg(w http.ResponseWriter, err error, status int) {
-	log.Error(err)
-	http.Error(w, err.Error(), status)
+func sendResponse(w http.ResponseWriter, status int, err error) {
+	if err != nil {
+		log.Error(err)
+		http.Error(w, fmt.Sprintf("%v", err), status)
+		return
+	}
+
+	w.WriteHeader(status)
 }
 
 func checkSession(h http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if status, err := checkOutUser(w, r); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		} else {
-			if status == true {
-				h.ServeHTTP(w, r)
-			} else {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
-			}
+
+		isNew, err := isNewSession(w, r)
+		if err != nil {
+			sendResponse(w, http.StatusInternalServerError, err)
+			return
 		}
+
+		if isNew {
+			sendResponse(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		h.ServeHTTP(w, r)
 	})
 }
 
 func agentAuthentication(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusBadRequest)
+		sendResponse(w, http.StatusBadRequest, err)
 		return
 	}
 	defer r.Body.Close()
 
 	pbRequest := pb.Request{}
 	if err = pbRequest.UnmarshalToStruct(body); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	//get product is mock. user has to set it in server page
 	productName, err := getProduct()
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	//adminID is mock. Here must be call to postgress db (table user - agentsID)
-	userID := adminID
+	userID, err := getUserID(r)
 	if err := database.RegisterNewAgent(userID, pbRequest.AgentID); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -75,14 +82,13 @@ func agentAuthentication(w http.ResponseWriter, r *http.Request) {
 
 	data, err := resp.MarshalStruct()
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	_, err = w.Write(data)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
-		return
+		sendResponse(w, http.StatusInternalServerError, err)
 	}
 }
 
@@ -101,12 +107,11 @@ func getProduct() (*string, error) {
 func createWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	log.Printf("New websocket connect with %s", r.Host)
-
 	go wsListener(conn)
 }
 
@@ -163,24 +168,22 @@ func wsListener(conn *websocket.Conn) {
 }
 
 func getFoodInfo(w http.ResponseWriter, r *http.Request) {
-
-	if r.Body == nil {
-		sendErrorMsg(w, errors.New("please send a request body"), http.StatusBadRequest)
+	userID, err := getUserID(r)
+	if err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	userID := &database.UserID{ID: adminID}
+	ID := &database.UserID{ID: userID}
 
-	defer r.Body.Close()
-
-	foods, err := userID.GetFoodsInFridge()
+	foods, err := ID.GetFoodsInFridge()
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err = json.NewEncoder(w).Encode(foods); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 	}
 }
 
@@ -188,23 +191,45 @@ func getRecipes(w http.ResponseWriter, r *http.Request) {
 	recipes, err := database.AllRecipes()
 
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	data, err := json.Marshal(recipes)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if _, err = w.Write(data); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 	}
 }
 
 func searchRecipes(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserID(r)
+	if err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
 
+	ID := &database.UserID{ID: userID}
+
+	foods, err := ID.GetFoodsInFridge()
+	if err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	recipes, err := database.Recipes(foods)
+	if err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err = json.NewEncoder(w).Encode(recipes); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+	}
 }
 
 func addAgent(w http.ResponseWriter, r *http.Request) {
@@ -221,84 +246,91 @@ func updateAgent(w http.ResponseWriter, r *http.Request) {
 
 func clientLogin(w http.ResponseWriter, r *http.Request) {
 	user := &database.Login{}
-	err := json.NewDecoder(r.Body).Decode(user)
+	if err := json.NewDecoder(r.Body).Decode(user); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
 
 	if err := database.ClientLogin(user.UserName, user.Pass); err != nil {
-		log.Error(err)
-		w.WriteHeader(http.StatusUnauthorized)
+		sendResponse(w, http.StatusUnauthorized, err)
 		return
 	}
 
 	userID, err := database.GetUserID(user.UserName)
 	if err != nil {
-		log.Error(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := sessionSet(w, r, userID); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Error(err)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+
+	sendResponse(w, http.StatusOK, nil)
 }
 
 func clientLogout(w http.ResponseWriter, r *http.Request) {
 	if err := closeSession(w, r); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+
+	sendResponse(w, http.StatusOK, nil)
 }
 
 func clientRegister(w http.ResponseWriter, r *http.Request) {
 	newUser := &database.Login{}
-	err := json.NewDecoder(r.Body).Decode(newUser)
+	if err := json.NewDecoder(r.Body).Decode(newUser); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
 
 	userID, err := database.RegisterNewUser(newUser.UserName, newUser.Pass)
 	if err != nil {
-		log.Error(errors.Annotate(err, "User already exist"))
-		w.WriteHeader(http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := sessionSet(w, r, userID); err != nil {
-		log.Error(errors.Annotate(err, "Couldn't create session"))
-		w.WriteHeader(http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+
+	sendResponse(w, http.StatusOK, nil)
 }
 
 func productAdd(w http.ResponseWriter, r *http.Request) {
 	newProduct := &database.Product{}
-	err := json.NewDecoder(r.Body).Decode(&newProduct)
-	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+
+	if err := json.NewDecoder(r.Body).Decode(&newProduct); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	err = database.AddProduct(newProduct.Name, newProduct.ShelfLife, newProduct.Units)
-	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+
+	if err := database.AddProduct(newProduct.Name, newProduct.ShelfLife, newProduct.Units); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+
+	sendResponse(w, http.StatusOK, nil)
 }
 
 func getAllProducts(w http.ResponseWriter, r *http.Request) {
 	products, err := database.AllProducts()
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+
 	data, err := json.Marshal(products)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+
 	if _, err = w.Write(data); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 	}
 }
 
@@ -307,16 +339,18 @@ func getProductByID(w http.ResponseWriter, r *http.Request) {
 	ID := vars["id"]
 	product, err := database.FindProductByID(ID)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+
 	data, err := json.Marshal(product)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+
 	if _, err = w.Write(data); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 	}
 }
 
@@ -324,61 +358,66 @@ func getProductByName(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 	product, err := database.FindProductByName(name)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+
 	data, err := json.Marshal(product)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+
 	if _, err = w.Write(data); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 	}
 }
 
 func productUpdate(w http.ResponseWriter, r *http.Request) {
 	newProduct := &database.Product{}
-	err := json.NewDecoder(r.Body).Decode(&newProduct)
-	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+
+	if err := json.NewDecoder(r.Body).Decode(&newProduct); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	err = database.UpdateProduct(newProduct.ID, newProduct.Name, newProduct.ShelfLife, newProduct.Units)
-	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+
+	if err := database.UpdateProduct(newProduct.ID, newProduct.Name, newProduct.ShelfLife, newProduct.Units); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+
+	sendResponse(w, http.StatusOK, nil)
 }
 
 func deleteProduct(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ID := vars["id"]
-	err := database.DeleteProductByID(ID)
-	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+
+	if err := database.DeleteProductByID(ID); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+
+	sendResponse(w, http.StatusOK, nil)
 }
 
 func getRecipesByProductName(w http.ResponseWriter, r *http.Request) {
-	productName := mux.Vars(r)["name"]
+	productName := mux.Vars(r)["productName"]
 	recipes, err := database.GetRecepiesByProductName(productName)
 
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	data, err := json.Marshal(recipes)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if _, err = w.Write(data); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 	}
 }
 
@@ -386,24 +425,24 @@ func recipesByProductNames(w http.ResponseWriter, r *http.Request) {
 	var productNames []string
 	err := json.NewDecoder(r.Body).Decode(&productNames)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	recipes, err := database.RecepiesByProducts(productNames)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	data, err := json.Marshal(recipes)
 	if err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if _, err = w.Write(data); err != nil {
-		sendErrorMsg(w, err, http.StatusInternalServerError)
+		sendResponse(w, http.StatusInternalServerError, err)
 	}
 }
 
