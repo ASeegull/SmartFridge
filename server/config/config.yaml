@@ -19,4 +19,4 @@ postgresConfig:
   dbName: "migsfgcy"
   maxOpenedConnectionsToDb: 5
   maxIdleConnectionsToDb: 0
-  mbConnMaxLifetimeMinutes: 60
+  mbConnMaxLifetimeMinutes: 30
