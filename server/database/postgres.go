@@ -291,29 +291,58 @@ func contains(slice []string, v string) bool {
 }
 
 //AddProduct adds a new product, returns nil if adding was successful
-func AddProduct(name string, shelfLife int, units string) error {
+func AddProduct(name string, shelfLife int, unit string) error {
 	id := uuid.NewV4().String()
-	product := Product{ID: id, Name: name, ShelfLife: shelfLife, Units: units}
+	var mUnit MUnit
+	err := db.Where("unit = ?", strings.ToLower(unit)).First(&mUnit).Error
+	if err != nil {
+		return err
+	}
+	product := Product{ID: id, Name: name, ShelfLife: shelfLife, Units: mUnit.ID}
 	return db.Create(&product).Error
 }
 
 //FindProductByID returns a pointer to the product
-func FindProductByID(id string) (*Product, error) {
+func FindProductByID(pid string) (*Product, error) {
+	var name, unit string
+	var shelfLife int
 	var product Product
-	err := db.Where("id = ?", id).First(&product).Error
+	rows, err := db.Table("products").Select("products.id, products.name, products.shelf_life, m_units.unit").
+		Joins("LEFT JOIN m_units on m_units.id = products.units").Where("products.id = ?", pid).Rows()
 	if err != nil {
 		return nil, err
 	}
+	for rows.Next() {
+		err = rows.Scan(&pid, &name, &shelfLife, &unit)
+		if err != nil {
+			rows.Close()
+			return nil, err
+		}
+		product = Product{ID: pid, Name: name, ShelfLife: shelfLife, Units: unit}
+	}
+	rows.Close()
 	return &product, nil
 }
 
 //FindProductByName returns a pointer to the product
 func FindProductByName(name string) (*Product, error) {
+	var id, unit string
+	var shelfLife int
 	var product Product
-	err := db.Where("name = ?", strings.ToLower(name)).First(&product).Error
+	rows, err := db.Table("products").Select("products.id, products.name, products.shelf_life, m_units.unit").
+		Joins("LEFT JOIN m_units on m_units.id = products.units").Where("name = ?", strings.ToLower(name)).Rows()
 	if err != nil {
 		return nil, err
 	}
+	for rows.Next() {
+		err = rows.Scan(&id, &name, &shelfLife, &unit)
+		if err != nil {
+			rows.Close()
+			return nil, err
+		}
+		product = Product{ID: id, Name: name, ShelfLife: shelfLife, Units: unit}
+	}
+	rows.Close()
 	return &product, nil
 }
 
@@ -330,14 +359,23 @@ func UpdateProduct(id string, name string, shelfLife int, units string) error {
 		product.ShelfLife = shelfLife
 	}
 	if units != "" {
-		product.Units = units
+		var mUnit MUnit
+		err := db.Where("unit = ?", strings.ToLower(units)).First(&mUnit).Error
+		if err != nil {
+			return err
+		}
+		product.Units = mUnit.ID
 	}
 	return db.Save(&product).Error
 }
 
 //DeleteProductByID updates information about a product, returns nil if deleting was successful
 func DeleteProductByID(id string) error {
-	return db.Where("id = ?", id).Delete(Product{}).Error
+	r := db.Delete(Product{}, "id = ?", id).RowsAffected
+	if r < 1 {
+		return errors.New("could not remove a product")
+	}
+	return nil
 }
 
 //AllProducts returns all products from the database
