@@ -2,10 +2,10 @@ package database
 
 //FoodInfo is example struct for agent
 type FoodInfo struct {
-	Product   string `bson:"product"`
-	Weight    int32  `bson:"weight"`
-	Expires   string `bson:"stateExpires"`
-	Condition string `bson:"condition"`
+	Product   string `bson:"product" json:"product"`
+	Weight    int32  `bson:"weight" json:"weight"`
+	Expires   string `bson:"stateExpires" json:"stateExpires"`
+	Condition string `bson:"condition" json:"condition"`
 }
 
 //FoodAgent is example struct for agent
