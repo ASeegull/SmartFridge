@@ -294,7 +294,7 @@ func contains(slice []string, v string) bool {
 func AddProduct(name string, shelfLife int, unit string) error {
 	id := uuid.NewV4().String()
 	var mUnit MUnit
-	err := db.Where("unit = ?", strings.ToLower(unit)).First(&mUnit).Error
+	err := db.Table("m_units").Where("unit = ?", strings.ToLower(unit)).First(&mUnit).Error
 	if err != nil {
 		return err
 	}
