@@ -26,8 +26,14 @@ type MUnit struct {
 
 //Agent represents an agent entity
 type Agent struct {
-	ID     string
-	UserID string
+	ID          string
+	AgentSerial string
+}
+
+//UserAgent is a row in joining table between user and agent
+type UserAgent struct {
+	UserID  string
+	AgentID string
 }
 
 //Ingridient represents an ingredient in a recepie
@@ -43,6 +49,7 @@ type Product struct {
 	Name      string `json:"productName"`
 	ShelfLife int    `json:"productShelfLife"`
 	Units     string `json:"productUnit"`
+	Image     string `json:"image"`
 }
 
 //Recepie represents a recepie
@@ -61,6 +68,12 @@ type User struct {
 	Login    string
 	Password string
 	Role     string
+}
+
+//UserRole represents the authorities of an user
+type UserRole struct {
+	ID   string
+	Role string
 }
 
 //Login contains username and password

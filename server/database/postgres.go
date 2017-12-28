@@ -48,9 +48,14 @@ func RegisterNewUser(login string, passHash string) (string, error) {
 	if err == nil {
 		return "", errors.New("login is already taken")
 	}
+	var userRole UserRole
+	if err = db.Where("role = ?", "user").Find(&userRole).Error; err != nil {
+		return "",err
+	}
 	user.ID = uuid.NewV4().String()
 	user.Login = login
 	user.Password = passHash
+	user.Role = userRole.ID
 	rows := db.Create(&user).RowsAffected
 	if rows != int64(1) {
 		return "", errors.New("user not added")
@@ -84,20 +89,25 @@ func GetUserID(login string) (string, error) {
 //CheckAgent checks agent registration, if agent is associated with a user returns true as first returning value
 func CheckAgent(idUser string, idAgent string) (bool, error) {
 	var err error
-	agent := Agent{}
-	err = db.Where("agents.id = ? AND agents.user_id = ?", idAgent, idUser).Find(&agent).Error
+	userAgent := UserAgent{}
+	err = db.Where("user_agents.agent_id = ? AND user_agents.user_id = ?", idAgent, idUser).Find(&userAgent).Error
 	if err != nil {
 		return false, nil
 	}
-	return agent.ID != "", nil
+	return true, nil
 }
 
 //RegisterNewAgent adds a new agent to user, returns nil if adding was successful
-func RegisterNewAgent(idUser string, idAgent string) error {
-	agent := Agent{ID: idAgent, UserID: idUser}
+func RegisterNewAgent(idUser string, agentSerial string) error {
+	agent := Agent{ID: uuid.NewV4().String(), AgentSerial: agentSerial}
 	rows := db.Create(&agent).RowsAffected
 	if !(rows == 1) {
-		return errors.New("can not register an agent")
+		return errors.New("can not register the agent")
+	}
+	userAgent := UserAgent{AgentID: agent.ID, UserID: idUser}
+	rows = db.Create(&userAgent).RowsAffected
+	if !(rows == 1) {
+		return errors.New("can not associate the agent with the user")
 	}
 	return nil
 }
@@ -105,20 +115,21 @@ func RegisterNewAgent(idUser string, idAgent string) error {
 //GetAllAgentsIDForClient returns all agent for clientID as a slice of string
 func GetAllAgentsIDForClient(userID string) ([]string, error) {
 	var err error
-	var agentID string
+	var agentSerial string
 	agentIds := make([]string, 0, avgNumOfAgentsOfUser)
-	rows, err := db.Table("agents").Select("agents.id").Where("agents.user_id=?", userID).Rows()
+	rows, err := db.Raw("select agents.agent_serial from agents join user_agents on user_agents.agent_id = agents.id where user_agents.user_id = ?;", userID).Rows()
+	fmt.Println(rows, err)
 	if err != nil {
 		rows.Close()
 		return nil, err
 	}
 	for rows.Next() {
-		err = rows.Scan(&agentID)
+		err = rows.Scan(&agentSerial)
 		if err != nil {
 			rows.Close()
 			return nil, err
 		}
-		agentIds = append(agentIds, agentID)
+		agentIds = append(agentIds, agentSerial)
 	}
 	rows.Close()
 	return agentIds, nil
@@ -291,34 +302,34 @@ func contains(slice []string, v string) bool {
 }
 
 //AddProduct adds a new product, returns nil if adding was successful
-func AddProduct(name string, shelfLife int, unit string) error {
+func AddProduct(name string, shelfLife int, unit string, image string) error {
 	id := uuid.NewV4().String()
 	var mUnit MUnit
 	err := db.Table("m_units").Where("unit = ?", strings.ToLower(unit)).First(&mUnit).Error
 	if err != nil {
 		return err
 	}
-	product := Product{ID: id, Name: name, ShelfLife: shelfLife, Units: mUnit.ID}
+	product := Product{ID: id, Name: name, ShelfLife: shelfLife, Image: image, Units: mUnit.ID}
 	return db.Create(&product).Error
 }
 
 //FindProductByID returns a pointer to the product
 func FindProductByID(pid string) (*Product, error) {
-	var name, unit string
+	var name, unit, image string
 	var shelfLife int
 	var product Product
-	rows, err := db.Table("products").Select("products.id, products.name, products.shelf_life, m_units.unit").
+	rows, err := db.Table("products").Select("products.id, products.name, products.image, products.shelf_life, m_units.unit").
 		Joins("LEFT JOIN m_units on m_units.id = products.units").Where("products.id = ?", pid).Rows()
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
-		err = rows.Scan(&pid, &name, &shelfLife, &unit)
+		err = rows.Scan(&pid, &name, &image, &shelfLife, &unit)
 		if err != nil {
 			rows.Close()
 			return nil, err
 		}
-		product = Product{ID: pid, Name: name, ShelfLife: shelfLife, Units: unit}
+		product = Product{ID: pid, Name: name, Image:image, ShelfLife: shelfLife, Units: unit}
 	}
 	rows.Close()
 	return &product, nil
@@ -326,34 +337,37 @@ func FindProductByID(pid string) (*Product, error) {
 
 //FindProductByName returns a pointer to the product
 func FindProductByName(name string) (*Product, error) {
-	var id, unit string
+	var id, unit, image string
 	var shelfLife int
 	var product Product
-	rows, err := db.Table("products").Select("products.id, products.name, products.shelf_life, m_units.unit").
+	rows, err := db.Table("products").Select("products.id, products.name, products.image, products.shelf_life, m_units.unit").
 		Joins("LEFT JOIN m_units on m_units.id = products.units").Where("name = ?", strings.ToLower(name)).Rows()
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
-		err = rows.Scan(&id, &name, &shelfLife, &unit)
+		err = rows.Scan(&id, &name, &image, &shelfLife, &unit)
 		if err != nil {
 			rows.Close()
 			return nil, err
 		}
-		product = Product{ID: id, Name: name, ShelfLife: shelfLife, Units: unit}
+		product = Product{ID: id, Name: name, Image: image, ShelfLife: shelfLife, Units: unit}
 	}
 	rows.Close()
 	return &product, nil
 }
 
 //UpdateProduct updates information about a product, returns nil if updating was successful
-func UpdateProduct(id string, name string, shelfLife int, units string) error {
+func UpdateProduct(id string, name string, image string, shelfLife int, units string) error {
 	product, err := FindProductByID(id)
 	if err != nil {
 		return err
 	}
 	if name != "" {
 		product.Name = strings.ToLower(name)
+	}
+	if image != "" {
+		product.Image = image
 	}
 	if shelfLife > 0 {
 		product.ShelfLife = shelfLife
@@ -381,20 +395,20 @@ func DeleteProductByID(id string) error {
 //AllProducts returns all products from the database
 func AllProducts() ([]Product, error) {
 	products := make([]Product, 0, prognosedNumOfProducts)
-	var id, name, unit string
+	var id, name, image, unit string
 	var shelfLife int
-	rows, err := db.Table("products").Select("products.id, products.name, products.shelf_life, m_units.unit").
+	rows, err := db.Table("products").Select("products.id, products.name, products.image, products.shelf_life, m_units.unit").
 		Joins("LEFT JOIN m_units on m_units.id = products.units").Rows()
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
-		err = rows.Scan(&id, &name, &shelfLife, &unit)
+		err = rows.Scan(&id, &name, &image, &shelfLife, &unit)
 		if err != nil {
 			rows.Close()
 			return nil, err
 		}
-		products = append(products, Product{ID: id, Name: name, ShelfLife: shelfLife, Units: unit})
+		products = append(products, Product{ID: id, Name: name, Image:image, ShelfLife: shelfLife, Units: unit})
 	}
 	rows.Close()
 	return products, nil
@@ -440,7 +454,7 @@ func GetRecepiesByProductName(productName string) ([]Recepie, error) {
 
 //RecepiesByProducts takes the slice of chosen product names and returns all recepies, which can be offered
 func RecepiesByProducts(products []string) ([]Recepie, error) {
-	for k, _ := range products {
+	for k := range products {
 		products[k] = strings.ToLower(products[k])
 	}
 	recipes := make([]Recepie, 0, prognosedNumOfRecepies)
@@ -478,3 +492,22 @@ func RecepiesByProducts(products []string) ([]Recepie, error) {
 	}
 	return recipes, nil
 }
+
+//CheckAdmin checks if current user has admins authorities
+func CheckAdmin(userID string) (bool, error) {
+var role string
+	rows, err := db.Raw("select user_roles.role from users join user_roles on user_roles.id = users.role where users.id = ?;", userID).Rows()
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		err = rows.Scan(&role)
+		if err != nil {
+			rows.Close()
+			return false, err
+		}
+		}
+	return role == "admin", nil
+}
+
