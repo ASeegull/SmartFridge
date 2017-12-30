@@ -220,7 +220,6 @@ func searchRecipes(w http.ResponseWriter, r *http.Request) {
 		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-
 	recipes, err := database.Recipes(foods)
 	if err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
@@ -301,7 +300,7 @@ func clientRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 func productAdd(w http.ResponseWriter, r *http.Request) {
-	userID,err := getUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
 		return
@@ -312,11 +311,10 @@ func productAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-if !isAdmin {
-	sendResponse(w, http.StatusMethodNotAllowed, errors.New("not allowed"))
-	return
-}
-
+	if !isAdmin {
+		sendResponse(w, http.StatusMethodNotAllowed, errors.New("not allowed"))
+		return
+	}
 
 	newProduct := &database.Product{}
 
@@ -391,7 +389,7 @@ func getProductByName(w http.ResponseWriter, r *http.Request) {
 }
 
 func productUpdate(w http.ResponseWriter, r *http.Request) {
-	userID,err := getUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
 		return
@@ -413,7 +411,7 @@ func productUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := database.UpdateProduct(newProduct.ID, newProduct.Name, newProduct.Image, newProduct.ShelfLife, newProduct.Units); err != nil {
+	if err := database.UpdateProduct(newProduct); err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -422,7 +420,7 @@ func productUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteProduct(w http.ResponseWriter, r *http.Request) {
-	userID,err := getUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
 		return
@@ -436,12 +434,16 @@ func deleteProduct(w http.ResponseWriter, r *http.Request) {
 	if !isAdmin {
 		sendResponse(w, http.StatusMethodNotAllowed, errors.New("not allowed"))
 		return
-		}
-	vars := mux.Vars(r)
-	ID := vars["id"]
+	}
 
+	name := mux.Vars(r)["name"]
 
-	if err := database.DeleteProductByID(ID); err != nil {
+	if name == "" {
+		sendResponse(w, http.StatusInternalServerError, errors.New("bad product's id"))
+		return
+	}
+
+	if err := database.DeleteProductByName(name); err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -450,7 +452,7 @@ func deleteProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func getRecipesByProductName(w http.ResponseWriter, r *http.Request) {
-	productName := mux.Vars(r)["productName"]
+	productName := mux.Vars(r)["name"]
 	recipes, err := database.GetRecepiesByProductName(productName)
 
 	if err != nil {
@@ -495,9 +497,5 @@ func recipesByProductNames(w http.ResponseWriter, r *http.Request) {
 }
 
 func checkAdmin(userID string) (bool, error) {
-	isAdmin, err := database.CheckAdmin(userID)
-	if err != nil {
-		return false, err
-	}
-	return isAdmin, err
+	return database.CheckAdmin(userID)
 }
