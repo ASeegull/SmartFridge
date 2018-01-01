@@ -301,6 +301,21 @@ func clientRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 func productAdd(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserID(r)
+	if err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	isAdmin, err := checkAdmin(userID)
+	if err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	if !isAdmin {
+		sendResponse(w, http.StatusMethodNotAllowed, errors.New("not allowed"))
+		return
+	}
+
 	newProduct := &database.Product{}
 
 	if err := json.NewDecoder(r.Body).Decode(&newProduct); err != nil {
@@ -308,7 +323,7 @@ func productAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := database.AddProduct(newProduct.Name, newProduct.ShelfLife, newProduct.Units); err != nil {
+	if err := database.AddProduct(newProduct.Name, newProduct.ShelfLife, newProduct.Units, newProduct.Image); err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -374,6 +389,21 @@ func getProductByName(w http.ResponseWriter, r *http.Request) {
 }
 
 func productUpdate(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserID(r)
+	if err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	isAdmin, err := checkAdmin(userID)
+	if err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if !isAdmin {
+		sendResponse(w, http.StatusMethodNotAllowed, errors.New("not allowed"))
+		return
+	}
 	newProduct := &database.Product{}
 
 	if err := json.NewDecoder(r.Body).Decode(&newProduct); err != nil {
@@ -381,7 +411,7 @@ func productUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := database.UpdateProduct(newProduct.ID, newProduct.Name, newProduct.ShelfLife, newProduct.Units); err != nil {
+	if err := database.UpdateProduct(newProduct.ID, newProduct.Name, newProduct.Image, newProduct.ShelfLife, newProduct.Units); err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -390,6 +420,21 @@ func productUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteProduct(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserID(r)
+	if err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	isAdmin, err := checkAdmin(userID)
+	if err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if !isAdmin {
+		sendResponse(w, http.StatusMethodNotAllowed, errors.New("not allowed"))
+		return
+	}
 	vars := mux.Vars(r)
 	ID := vars["id"]
 
@@ -444,4 +489,8 @@ func recipesByProductNames(w http.ResponseWriter, r *http.Request) {
 	if _, err = w.Write(data); err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
 	}
+}
+
+func checkAdmin(userID string) (bool, error) {
+	return database.CheckAdmin(userID)
 }
