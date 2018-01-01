@@ -1,0 +1,124 @@
+{
+	"ImportPath": "github.com/ASeegull/SmartFridge",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v79",
+	"Deps": [
+		{
+			"ImportPath": "github.com/davecheney/errors",
+			"Rev": "b2c7a7da5b2995941048f60146e67702a292e468"
+		},
+		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "1e59b77b52bf8e4b449a57e6f79f21226d571845"
+		},
+		{
+			"ImportPath": "github.com/gorilla/context",
+			"Comment": "v1.1-7-g08b5f42",
+			"Rev": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
+		},
+		{
+			"ImportPath": "github.com/gorilla/mux",
+			"Comment": "v1.6.0-1-g2d5fef0",
+			"Rev": "2d5fef06b891c971b14aa6f71ca5ab6c03a36e0e"
+		},
+		{
+			"ImportPath": "github.com/gorilla/securecookie",
+			"Comment": "v1.1-6-ge59506c",
+			"Rev": "e59506cc896acb7f7bf732d4fdf5e25f7ccd8983"
+		},
+		{
+			"ImportPath": "github.com/gorilla/sessions",
+			"Comment": "v1.1-8-ga3acf13",
+			"Rev": "a3acf13e802c358d65f249324d14ed24aac11370"
+		},
+		{
+			"ImportPath": "github.com/gorilla/websocket",
+			"Comment": "v1.2.0-13-g3da6ca0",
+			"Rev": "3da6ca0cb65383f2b607a677b6b55e8358cacee6"
+		},
+		{
+			"ImportPath": "github.com/jinzhu/gorm",
+			"Comment": "v1.0-176-g0a51f6c",
+			"Rev": "0a51f6cdc55d1650d9ed3b4c13026cfa9133b01e"
+		},
+		{
+			"ImportPath": "github.com/jinzhu/inflection",
+			"Rev": "1c35d901db3da928c72a72d8458480cc9ade058f"
+		},
+		{
+			"ImportPath": "github.com/kabukky/httpscerts",
+			"Rev": "617593d7dcb39c9ed617bb62c5e2056244d02184"
+		},
+		{
+			"ImportPath": "github.com/lib/pq",
+			"Comment": "go1.0-cutoff-191-gb609790",
+			"Rev": "b609790bd85edf8e9ab7e0f8912750a786177bcf"
+		},
+		{
+			"ImportPath": "github.com/lib/pq/oid",
+			"Comment": "go1.0-cutoff-191-gb609790",
+			"Rev": "b609790bd85edf8e9ab7e0f8912750a786177bcf"
+		},
+		{
+			"ImportPath": "github.com/pkg/errors",
+			"Comment": "v0.8.0-10-ge881fd5",
+			"Rev": "e881fd58d78e04cf6d0de1217f8707c8cc2249bc"
+		},
+		{
+			"ImportPath": "github.com/rs/cors",
+			"Comment": "v1.2-1-geabcc6a",
+			"Rev": "eabcc6af4bbe5ad3a949d36450326a2b0b9894b8"
+		},
+		{
+			"ImportPath": "github.com/satori/go.uuid",
+			"Comment": "v1.1.0-8-g5bf94b6",
+			"Rev": "5bf94b69c6b68ee1b541973bb8e1144db23a194b"
+		},
+		{
+			"ImportPath": "github.com/sirupsen/logrus",
+			"Comment": "v1.0.3-11-g89742ae",
+			"Rev": "89742aefa4b206dcf400792f3bd35b542998eb3b"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/ssh/terminal",
+			"Rev": "9f005a07e0d31d45e6656d241bb5c0f2efd4bc94"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "0dd5e194bbf5eb84a39666eb4c98a4d007e4203a"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/windows",
+			"Rev": "0dd5e194bbf5eb84a39666eb4c98a4d007e4203a"
+		},
+		{
+			"ImportPath": "gopkg.in/mgo.v2",
+			"Comment": "r2016.08.01-5-g3f83fa5",
+			"Rev": "3f83fa5005286a7fe593b055f0d7771a7dce4655"
+		},
+		{
+			"ImportPath": "gopkg.in/mgo.v2/bson",
+			"Comment": "r2016.08.01-5-g3f83fa5",
+			"Rev": "3f83fa5005286a7fe593b055f0d7771a7dce4655"
+		},
+		{
+			"ImportPath": "gopkg.in/mgo.v2/internal/json",
+			"Comment": "r2016.08.01-5-g3f83fa5",
+			"Rev": "3f83fa5005286a7fe593b055f0d7771a7dce4655"
+		},
+		{
+			"ImportPath": "gopkg.in/mgo.v2/internal/sasl",
+			"Comment": "r2016.08.01-5-g3f83fa5",
+			"Rev": "3f83fa5005286a7fe593b055f0d7771a7dce4655"
+		},
+		{
+			"ImportPath": "gopkg.in/mgo.v2/internal/scram",
+			"Comment": "r2016.08.01-5-g3f83fa5",
+			"Rev": "3f83fa5005286a7fe593b055f0d7771a7dce4655"
+		},
+		{
+			"ImportPath": "gopkg.in/yaml.v2",
+			"Rev": "287cf08546ab5e7e37d55a84f7ed3fd1db036de5"
+		}
+	]
+}
