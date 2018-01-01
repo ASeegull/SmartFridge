@@ -31,14 +31,13 @@ type Recepie struct {
 var session string
 var URL string
 
-//GetAllRecipes() displays all stored recipes with ingredients, do need authentification
 func getAllRecipes() {
 	resp, err := http.Get(URL + "/allRecipes")
 	if resp != nil {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	var recipes []Recepie
@@ -51,7 +50,7 @@ func getAllRecipes() {
 func getProductByName(name string) {
 	req, err := http.NewRequest("GET", URL+"/products/getByName/"+name, nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	cookie := "sessionName=" + session
@@ -62,14 +61,14 @@ func getProductByName(name string) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	if resp.StatusCode == http.StatusOK {
 		var p Product
 		err = json.NewDecoder(resp.Body).Decode(&p)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return
 		}
 		fmt.Printf("|%-10s|%-2d|%-7s|%s|%-50s|\n", p.Name, p.ShelfLife, p.Units, p.ID, p.Image)
@@ -81,7 +80,7 @@ func getProductByName(name string) {
 func getProductByID(id string) (*Product, error) {
 	req, err := http.NewRequest("GET", URL+"/products/getByID/"+id, nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return nil, err
 	}
 	cookie := "sessionName=" + session
@@ -92,14 +91,14 @@ func getProductByID(id string) (*Product, error) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return nil, err
 	}
 	if resp.StatusCode == http.StatusOK {
 		var p Product
 		err = json.NewDecoder(resp.Body).Decode(&p)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return nil, err
 		}
 		fmt.Printf("|%-10s|%-2d|%-7s|%s|%-50s|\n", p.Name, p.ShelfLife, p.Units, p.ID, p.Image)
@@ -113,7 +112,7 @@ func getProductByID(id string) (*Product, error) {
 func deleteProductByID(id string, session string) {
 	req, err := http.NewRequest("DELETE", URL+"/products/remove/"+id, nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	cookie := "sessionName=" + session
@@ -124,7 +123,7 @@ func deleteProductByID(id string, session string) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	fmt.Println("response Status:", resp.Status)
@@ -133,7 +132,7 @@ func deleteProductByID(id string, session string) {
 func getAllProducts() {
 	req, err := http.NewRequest("GET", URL+"/getProducts", nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	cookie := "sessionName=" + session
@@ -144,7 +143,7 @@ func getAllProducts() {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	var products []Product
@@ -159,12 +158,12 @@ func addProduct(name string, shelfLife int, image string, unit string) {
 	url := URL + "/addProduct"
 	jsonStr, err := json.Marshal(product)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -176,7 +175,7 @@ func addProduct(name string, shelfLife int, image string, unit string) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	fmt.Println("response Status:", resp.Status)
@@ -186,12 +185,12 @@ func updateProduct(product *Product) {
 	url := URL + "/updateProduct"
 	jsonStr, err := json.Marshal(product)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -203,7 +202,7 @@ func updateProduct(product *Product) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	fmt.Println("response Status:", resp.Status)
@@ -212,7 +211,7 @@ func updateProduct(product *Product) {
 func recepies() {
 	req, err := http.NewRequest("GET", URL+"/searchRecipes", nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	cookie := "sessionName=" + session
@@ -223,7 +222,7 @@ func recepies() {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	var recipes []Recepie
@@ -237,7 +236,7 @@ func loginFunc(login string, pass string) {
 	var jsonStr = []byte(`{"login":"` + login + `","pass":"` + pass + `"}`)
 	req, err := http.NewRequest("POST", URL+"/login", bytes.NewBuffer(jsonStr))
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -247,7 +246,7 @@ func loginFunc(login string, pass string) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	fmt.Println("response Status:", resp.Status)
@@ -266,7 +265,7 @@ func logout() {
 
 func isAuthorized() bool {
 	if session == "" {
-		fmt.Println(errors.New("not authenticated"))
+		log.Println(errors.New("not authenticated"))
 		return false
 	}
 	return true
@@ -343,7 +342,7 @@ func main() {
 				fmt.Scan(&id)
 				p, err := getProductByID(id)
 				if err != nil {
-					fmt.Println(err)
+					log.Println(err)
 					continue
 				}
 
