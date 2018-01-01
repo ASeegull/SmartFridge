@@ -116,9 +116,9 @@ var AppComponent = (function () {
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_24__main_modal_modal_component__ = __webpack_require__("../../../../../src/app/main/modal/modal.component.ts");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_25__main_product_product_component__ = __webpack_require__("../../../../../src/app/main/product/product.component.ts");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_26__views_help_help_component__ = __webpack_require__("../../../../../src/app/views/help/help.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_27__main_footer_footer_component__ = __webpack_require__("../../../../../src/app/main/footer/footer.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_28__main_add_product_modal_add_product_modal_component__ = __webpack_require__("../../../../../src/app/main/add-product-modal/add-product-modal.component.ts");
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_29__main_update_product_modal_update_product_modal_component__ = __webpack_require__("../../../../../src/app/main/update-product-modal/update-product-modal.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_27__main_add_product_modal_add_product_modal_component__ = __webpack_require__("../../../../../src/app/main/add-product-modal/add-product-modal.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_28__main_update_product_modal_update_product_modal_component__ = __webpack_require__("../../../../../src/app/main/update-product-modal/update-product-modal.component.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_29__main_search_modal_search_modal_component__ = __webpack_require__("../../../../../src/app/main/search-modal/search-modal.component.ts");
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -186,9 +186,9 @@ var AppModule = (function () {
                 __WEBPACK_IMPORTED_MODULE_24__main_modal_modal_component__["a" /* ModalComponent */],
                 __WEBPACK_IMPORTED_MODULE_25__main_product_product_component__["a" /* ProductComponent */],
                 __WEBPACK_IMPORTED_MODULE_26__views_help_help_component__["a" /* HelpComponent */],
-                __WEBPACK_IMPORTED_MODULE_27__main_footer_footer_component__["a" /* FooterComponent */],
-                __WEBPACK_IMPORTED_MODULE_28__main_add_product_modal_add_product_modal_component__["a" /* AddProductModalComponent */],
-                __WEBPACK_IMPORTED_MODULE_29__main_update_product_modal_update_product_modal_component__["a" /* UpdateProductModalComponent */]
+                __WEBPACK_IMPORTED_MODULE_27__main_add_product_modal_add_product_modal_component__["a" /* AddProductModalComponent */],
+                __WEBPACK_IMPORTED_MODULE_28__main_update_product_modal_update_product_modal_component__["a" /* UpdateProductModalComponent */],
+                __WEBPACK_IMPORTED_MODULE_29__main_search_modal_search_modal_component__["a" /* SearchModalComponent */]
             ],
             imports: [
                 __WEBPACK_IMPORTED_MODULE_0__angular_platform_browser__["a" /* BrowserModule */],
@@ -644,67 +644,6 @@ var AddProductModalComponent = (function () {
 
 /***/ }),
 
-/***/ "../../../../../src/app/main/footer/footer.component.css":
-/***/ (function(module, exports, __webpack_require__) {
-
-exports = module.exports = __webpack_require__("../../../../css-loader/lib/css-base.js")(false);
-// imports
-
-
-// module
-exports.push([module.i, ".addProduct {\r\n    font-size: 1.1rem;\r\n    color: #fff;\r\n    border-radius: 50%;\r\n    outline: none;\r\n    border: 2px solid #fff;\r\n    width: 15vh;\r\n    height: 15vh;\r\n    background-color: darkslategrey;\r\n    cursor: pointer;\r\n    text-align: center;\r\n    position: fixed;\r\n    bottom: 10%;\r\n    left: 10%;\r\n    display: -webkit-box;\r\n    display: -ms-flexbox;\r\n    display: flex;\r\n    -webkit-box-pack: center;\r\n        -ms-flex-pack: center;\r\n            justify-content: center;\r\n    -webkit-box-align: center;\r\n        -ms-flex-align: center;\r\n            align-items: center;\r\n    box-shadow: 0 0 5px black;\r\n}\r\n\r\n.addProduct:hover {\r\n    color: #cdd6d6;\r\n    background-color: #367373;\r\n}", ""]);
-
-// exports
-
-
-/*** EXPORTS FROM exports-loader ***/
-module.exports = module.exports.toString();
-
-/***/ }),
-
-/***/ "../../../../../src/app/main/footer/footer.component.html":
-/***/ (function(module, exports) {
-
-module.exports = "<div class=\"addProduct\">Add<br />Agent</div>"
-
-/***/ }),
-
-/***/ "../../../../../src/app/main/footer/footer.component.ts":
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return FooterComponent; });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/esm5/core.js");
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-
-var FooterComponent = (function () {
-    function FooterComponent() {
-    }
-    FooterComponent.prototype.ngOnInit = function () {
-    };
-    FooterComponent = __decorate([
-        Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
-            selector: 'app-footer',
-            template: __webpack_require__("../../../../../src/app/main/footer/footer.component.html"),
-            styles: [__webpack_require__("../../../../../src/app/main/footer/footer.component.css")]
-        }),
-        __metadata("design:paramtypes", [])
-    ], FooterComponent);
-    return FooterComponent;
-}());
-
-
-
-/***/ }),
-
 /***/ "../../../../../src/app/main/item/item.component.css":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -893,7 +832,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/main/product/product.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<header>\n  <h3 class=\"title\">{{ product.product | titlecase }}</h3>\n  <div class=\"options\">\n      <div class=\"search\" title=\"Search recepies by this product\"\n          [ngClass]=\"{'search-accented':product.condition === 'warn'}\"\n          (click)=\"searchByProduct();\">\n          <i class=\"fa fa-search\"></i>\n      </div>\n      <app-modal [agent]=\"product\"></app-modal>\n  </div>\n</header>\n<main>\n  <img class=\"product-image\" src=\"assets/tomato.jpg\" alt=\"Помідорка\"\n  [ngClass]=\"{'product-expired':product.condition === 'expired'}\">\n  <p>Weight: {{ product.weight }}g</p>\n  <p>\n      <i *ngIf=\"product.condition === 'ok'\" class=\"fa fa-smile-o text-ok\" aria-hidden=\"true\"></i>\n      <i *ngIf=\"product.condition === 'warn'\" class=\"fa fa-exclamation-triangle text-warn\" aria-hidden=\"true\"></i>\n      <i *ngIf=\"product.condition === 'expired'\" class=\"fa fa-frown-o text-alert\" aria-hidden=\"true\"></i>\n      Expires: {{ product.stateExpires }}\n  </p>\n  <p *ngIf=\"product.condition === 'warn'\" class=\"text-warn\">This product is about to expire... Let's see, how we can use it</p>\n  <p *ngIf=\"product.condition === 'expired'\" class=\"text-alert\">Oops... This product isn't safe anymore</p>\n</main>"
+module.exports = "<header>\n  <h3 class=\"title\">{{ product.product | titlecase }}</h3>\n  <div class=\"options\">\n      <app-search-modal title=\"Search recepies by this product\"\n          [ngClass]=\"{'search-accented':product.condition === 'warn'}\"\n          [productName]=\"product.product\">\n      </app-search-modal>\n      <app-modal [agent]=\"product\"></app-modal>\n  </div>\n</header>\n<main>\n  <img class=\"product-image\" src=\"assets/tomato.jpg\" alt=\"Помідорка\"\n  [ngClass]=\"{'product-expired':product.condition === 'expired'}\">\n  <p>Weight: {{ product.weight }}g</p>\n  <p>\n      <i *ngIf=\"product.condition === 'ok'\" class=\"fa fa-smile-o text-ok\" aria-hidden=\"true\"></i>\n      <i *ngIf=\"product.condition === 'warn'\" class=\"fa fa-exclamation-triangle text-warn\" aria-hidden=\"true\"></i>\n      <i *ngIf=\"product.condition === 'expired'\" class=\"fa fa-frown-o text-alert\" aria-hidden=\"true\"></i>\n      Expires: {{ product.stateExpires }}\n  </p>\n  <p *ngIf=\"product.condition === 'warn'\" class=\"text-warn\">This product is about to expire... Let's see, how we can use it</p>\n  <p *ngIf=\"product.condition === 'expired'\" class=\"text-alert\">Oops... This product isn't safe anymore</p>\n</main>"
 
 /***/ }),
 
@@ -904,6 +843,7 @@ module.exports = "<header>\n  <h3 class=\"title\">{{ product.product | titlecase
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ProductComponent; });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/esm5/core.js");
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__models_agent__ = __webpack_require__("../../../../../src/app/models/agent.ts");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__services_main_service__ = __webpack_require__("../../../../../src/app/services/main.service.ts");
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -915,8 +855,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 
 
+
 var ProductComponent = (function () {
-    function ProductComponent() {
+    function ProductComponent(mainService) {
+        this.mainService = mainService;
     }
     ProductComponent.prototype.ngOnInit = function () {
         console.log(this.product);
@@ -931,7 +873,7 @@ var ProductComponent = (function () {
             template: __webpack_require__("../../../../../src/app/main/product/product.component.html"),
             styles: [__webpack_require__("../../../../../src/app/main/product/product.component.css")]
         }),
-        __metadata("design:paramtypes", [])
+        __metadata("design:paramtypes", [__WEBPACK_IMPORTED_MODULE_2__services_main_service__["a" /* MainService */]])
     ], ProductComponent);
     return ProductComponent;
 }());
@@ -995,6 +937,83 @@ var RecipeComponent = (function () {
         __metadata("design:paramtypes", [])
     ], RecipeComponent);
     return RecipeComponent;
+}());
+
+
+
+/***/ }),
+
+/***/ "../../../../../src/app/main/search-modal/search-modal.component.css":
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__("../../../../css-loader/lib/css-base.js")(false);
+// imports
+
+
+// module
+exports.push([module.i, ".card {\r\n    width: 450px;\r\n    box-shadow: 0 0 5px rgb(23, 43, 43);\r\n    padding: 2rem 1rem;\r\n    background-color: white;\r\n    margin: 2rem 1rem;\r\n}\r\n\r\n.card > * {\r\n    margin: 1rem;\r\n}\r\n\r\n.content {\r\n    padding: 13vh 10vw;\r\n    display: -webkit-box;\r\n    display: -ms-flexbox;\r\n    display: flex;\r\n    -webkit-box-orient: horizontal;\r\n    -webkit-box-direction: normal;\r\n        -ms-flex-flow: row wrap;\r\n            flex-flow: row wrap;\r\n    -webkit-box-pack: justify;\r\n        -ms-flex-pack: justify;\r\n            justify-content: space-between;\r\n}\r\n\r\nheader {\r\n    display: -webkit-box;\r\n    display: -ms-flexbox;\r\n    display: flex;\r\n    -webkit-box-pack: justify;\r\n        -ms-flex-pack: justify;\r\n            justify-content: space-between;\r\n}\r\n\r\n.title {\r\n    -webkit-box-flex: 1;\r\n        -ms-flex: 1 1 60%;\r\n            flex: 1 1 60%;\r\n}\r\n\r\n.tags {\r\n    display: -webkit-box;\r\n    display: -ms-flexbox;\r\n    display: flex;\r\n    -webkit-box-align: center;\r\n        -ms-flex-align: center;\r\n            align-items: center;\r\n    -webkit-box-flex: 1;\r\n        -ms-flex: 1 0 auto;\r\n            flex: 1 0 auto;\r\n    -webkit-box-pack: justify;\r\n        -ms-flex-pack: justify;\r\n            justify-content: space-between;\r\n}\r\n\r\n.complexity {\r\n    padding: 0.3rem 0.3rem;\r\n    border-radius: 15px;\r\n    -ms-flex-line-pack: center;\r\n        align-content: center;\r\n}\r\n\r\n.complexity-easy {\r\n    background-color: #84d511;\r\n}\r\n\r\n.complexity-normal {\r\n    background-color: rgb(255, 255, 43);\r\n    color: #4d4141;\r\n}\r\n\r\n.complexity-hard {\r\n    background-color: rgb(216, 45, 45);\r\n    color: #ffe2e2;\r\n}\r\n\r\n.description {\r\n    margin-bottom: 0.7rem;\r\n}", ""]);
+
+// exports
+
+
+/*** EXPORTS FROM exports-loader ***/
+module.exports = module.exports.toString();
+
+/***/ }),
+
+/***/ "../../../../../src/app/main/search-modal/search-modal.component.html":
+/***/ (function(module, exports) {
+
+module.exports = "<div  class=\"search\" (click)=\"search();\">\n  <i class=\"fa fa-search\"></i>\n</div>\n\n<modal #searchresults>\n  <modal-head>\n    <h3>Search Results</h3>\n  </modal-head>\n  <modal-content>\n      <article class=\"card\" *ngFor=\"let recipe of recipes\">\n          <header>\n              <h3 class=\"title\">{{ recipe.title }}</h3>\n              <div class=\"tags\">\n                  <div class=\"time\">\n                      <i class=\"fa fa-clock-o\" aria-hidden=\"true\"></i>\n                      {{ recipe.coockingTimeMin }} min</div>\n                  <div class=\"complexity\" [ngClass]=\"{\n                      'complexity-easy':recipe.complexity === 'easy',\n                      'complexity-normal':recipe.complexity === 'normal',\n                      'complexity-hard':recipe.complexity === 'hard'\n                  }\">\n                      <i class=\"fa\" [ngClass]=\"{\n                          'fa-check':recipe.complexity === 'easy',\n                          'fa-cog':recipe.complexity === 'normal',\n                          'fa-cogs':recipe.complexity === 'hard'\n                      }\" arria-hidden=\"true\"></i>\n                  {{ recipe.complexity }}\n                  </div>\n              </div>\n          </header>\n          <main>\n              <div class=\"description\">{{ recipe.description }}</div>\n              <div class=\"ingredients\">{{ recipe.ingredients }}</div>\n          </main>\n      </article>\n  </modal-content>\n</modal>"
+
+/***/ }),
+
+/***/ "../../../../../src/app/main/search-modal/search-modal.component.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return SearchModalComponent; });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_core__ = __webpack_require__("../../../core/esm5/core.js");
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__services_main_service__ = __webpack_require__("../../../../../src/app/services/main.service.ts");
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+
+var SearchModalComponent = (function () {
+    function SearchModalComponent(mainService) {
+        this.mainService = mainService;
+    }
+    SearchModalComponent.prototype.ngOnInit = function () {
+    };
+    SearchModalComponent.prototype.search = function () {
+        var _this = this;
+        this.mainService.getRecipesByProduct(this.productName).subscribe(function (data) { _this.recipes = data; }, function (err) { console.log(err); });
+        this.searchresults.open();
+    };
+    __decorate([
+        Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Input"])(),
+        __metadata("design:type", String)
+    ], SearchModalComponent.prototype, "productName", void 0);
+    __decorate([
+        Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["ViewChild"])('searchresults'),
+        __metadata("design:type", Object)
+    ], SearchModalComponent.prototype, "searchresults", void 0);
+    SearchModalComponent = __decorate([
+        Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Component"])({
+            selector: 'app-search-modal',
+            template: __webpack_require__("../../../../../src/app/main/search-modal/search-modal.component.html"),
+            styles: [__webpack_require__("../../../../../src/app/main/search-modal/search-modal.component.css")]
+        }),
+        __metadata("design:paramtypes", [__WEBPACK_IMPORTED_MODULE_1__services_main_service__["a" /* MainService */]])
+    ], SearchModalComponent);
+    return SearchModalComponent;
 }());
 
 
@@ -1247,7 +1266,7 @@ var AuthService = (function () {
     function AuthService(router, http) {
         this.router = router;
         this.http = http;
-        this.auth = true;
+        this.auth = false;
     }
     AuthService.prototype.checkLogin = function () {
         if (document.cookie) {
@@ -1343,6 +1362,9 @@ var MainService = (function () {
     };
     MainService.prototype.getMyRecipes = function () {
         return this.http.get(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + 'client/searchRecipes', { withCredentials: true });
+    };
+    MainService.prototype.getRecipesByProduct = function (name) {
+        return this.http.get(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + ("client/recipes/getByProductName/" + name), { withCredentials: true });
     };
     MainService.prototype.getProducts = function () {
         return this.http.get(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + 'client/fridgeContent', { withCredentials: true });
@@ -1609,27 +1631,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var HelpComponent = (function () {
     function HelpComponent(mainService) {
         this.mainService = mainService;
-        // products: Ingredient[];
-        this.products = [
-            {
-                ID: 'string',
-                name: 'watermelon',
-                shelfLife: 48,
-                units: 'kg',
-                imageURL: 'https://www.organicfacts.net/wp-content/uploads/2013/05/watermelon2.jpg'
-            },
-            {
-                ID: '1231',
-                name: 'milk',
-                shelfLife: 72,
-                units: 'l',
-                imageURL: 'https://www.organicfacts.net/wp-content/uploads/2013/05/watermelon2.jpg'
-            }
-        ];
     }
     HelpComponent.prototype.ngOnInit = function () {
+        var _this = this;
         this.mainService.getProductList().subscribe(function (data) {
-            // this.products = data;
+            _this.products = data;
             console.log(data);
         });
     };
@@ -1697,28 +1703,6 @@ var HomeComponent = (function () {
     function HomeComponent(mainService, router) {
         this.mainService = mainService;
         this.router = router;
-        // products: Agent[];
-        this.products = [{
-                agentID: '',
-                product: 'Oil',
-                weight: 300,
-                stateExpires: '23.01.2018',
-                condition: 'ok'
-            },
-            {
-                agentID: '',
-                product: 'Milk',
-                weight: 1000,
-                stateExpires: '10.01.2018',
-                condition: 'warn'
-            },
-            {
-                agentID: '',
-                product: 'Milk',
-                weight: 1000,
-                stateExpires: '10.01.2018',
-                condition: 'expired'
-            }];
         this.noAgents = false;
         this.success = false;
         this.failed = false;
@@ -1732,8 +1716,6 @@ var HomeComponent = (function () {
                 _this.noAgents = true;
             }
         });
-    };
-    HomeComponent.prototype.searchByProduct = function () {
     };
     HomeComponent.prototype.newAgentRedirect = function () {
         this.router.navigate(['/newAgent']);
