@@ -45,7 +45,7 @@ func Run(cfg config.ServerConfig) error {
 
 	log.Printf("Server started on %s:%s", cfg.Host, os.Getenv("PORT"))
 	// return http.ListenAndServeTLS(cfg.Host+":"+cfg.Port, "cert.pem", "key.pem", handler)
-	return http.ListenAndServe(cfg.Host+":"+cfg.Port, handler)
+	//return http.ListenAndServe(cfg.Host+":"+cfg.Port, handler)
 	return http.ListenAndServe(":"+os.Getenv("PORT"), handler)
 }
 
