@@ -50,7 +50,7 @@ func RegisterNewUser(login string, passHash string) (string, error) {
 	}
 	var userRole UserRole
 	if err = db.Where("role = ?", "user").Find(&userRole).Error; err != nil {
-		return "",err
+		return "", err
 	}
 	user.ID = uuid.NewV4().String()
 	user.Login = login
@@ -92,7 +92,7 @@ func CheckAgent(idUser string, idAgent string) (bool, error) {
 	userAgent := UserAgent{}
 	err = db.Where("user_agents.agent_id = ? AND user_agents.user_id = ?", idAgent, idUser).Find(&userAgent).Error
 	if err != nil {
-		return false, nil
+		return false, err
 	}
 	return true, nil
 }
@@ -101,12 +101,12 @@ func CheckAgent(idUser string, idAgent string) (bool, error) {
 func RegisterNewAgent(idUser string, agentSerial string) error {
 	agent := Agent{ID: uuid.NewV4().String(), AgentSerial: agentSerial}
 	rows := db.Create(&agent).RowsAffected
-	if !(rows == 1) {
+	if rows != 1 {
 		return errors.New("can not register the agent")
 	}
 	userAgent := UserAgent{AgentID: agent.ID, UserID: idUser}
 	rows = db.Create(&userAgent).RowsAffected
-	if !(rows == 1) {
+	if rows != 1 {
 		return errors.New("can not associate the agent with the user")
 	}
 	return nil
@@ -120,7 +120,6 @@ func GetAllAgentsIDForClient(userID string) ([]string, error) {
 	rows, err := db.Raw("select agents.agent_serial from agents join user_agents on user_agents.agent_id = agents.id where user_agents.user_id = ?;", userID).Rows()
 	fmt.Println(rows, err)
 	if err != nil {
-		rows.Close()
 		return nil, err
 	}
 	for rows.Next() {
@@ -329,7 +328,7 @@ func FindProductByID(pid string) (*Product, error) {
 			rows.Close()
 			return nil, err
 		}
-		product = Product{ID: pid, Name: name, Image:image, ShelfLife: shelfLife, Units: unit}
+		product = Product{ID: pid, Name: name, Image: image, ShelfLife: shelfLife, Units: unit}
 	}
 	rows.Close()
 	return &product, nil
@@ -402,15 +401,15 @@ func AllProducts() ([]Product, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		err = rows.Scan(&id, &name, &image, &shelfLife, &unit)
 		if err != nil {
 			rows.Close()
 			return nil, err
 		}
-		products = append(products, Product{ID: id, Name: name, Image:image, ShelfLife: shelfLife, Units: unit})
+		products = append(products, Product{ID: id, Name: name, Image: image, ShelfLife: shelfLife, Units: unit})
 	}
-	rows.Close()
 	return products, nil
 }
 
@@ -495,7 +494,7 @@ func RecepiesByProducts(products []string) ([]Recepie, error) {
 
 //CheckAdmin checks if current user has admins authorities
 func CheckAdmin(userID string) (bool, error) {
-var role string
+	var role string
 	rows, err := db.Raw("select user_roles.role from users join user_roles on user_roles.id = users.role where users.id = ?;", userID).Rows()
 	if err != nil {
 		return false, err
@@ -507,7 +506,6 @@ var role string
 			rows.Close()
 			return false, err
 		}
-		}
+	}
 	return role == "admin", nil
 }
-

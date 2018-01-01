@@ -31,14 +31,14 @@ type Recepie struct {
 var session string
 var URL string
 
-//GetAllRecipes() displays all stored recipes with ingredients, do need authentification
-func GetAllRecipes() {
+func getAllRecipes() {
 	resp, err := http.Get(URL + "/allRecipes")
 	if resp != nil {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return
 	}
 	var recipes []Recepie
 	json.NewDecoder(resp.Body).Decode(&recipes)
@@ -47,10 +47,11 @@ func GetAllRecipes() {
 	}
 }
 
-func GetProductByName(name string) {
+func getProductByName(name string) {
 	req, err := http.NewRequest("GET", URL+"/products/getByName/"+name, nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return
 	}
 	cookie := "sessionName=" + session
 	req.Header.Add("Cookie", cookie)
@@ -60,21 +61,27 @@ func GetProductByName(name string) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return
 	}
-	if resp.Status == "200 OK" {
+	if resp.StatusCode == http.StatusOK {
 		var p Product
-		json.NewDecoder(resp.Body).Decode(&p)
+		err = json.NewDecoder(resp.Body).Decode(&p)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 		fmt.Printf("|%-10s|%-2d|%-7s|%s|%-50s|\n", p.Name, p.ShelfLife, p.Units, p.ID, p.Image)
 	} else {
-		fmt.Println(err)
+		fmt.Println(resp.Status)
 	}
 }
 
-func GetProductByID(id string) (*Product, error) {
+func getProductByID(id string) (*Product, error) {
 	req, err := http.NewRequest("GET", URL+"/products/getByID/"+id, nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return nil, err
 	}
 	cookie := "sessionName=" + session
 	req.Header.Add("Cookie", cookie)
@@ -84,23 +91,29 @@ func GetProductByID(id string) (*Product, error) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return nil, err
 	}
-	if resp.Status == "200 OK" {
+	if resp.StatusCode == http.StatusOK {
 		var p Product
-		json.NewDecoder(resp.Body).Decode(&p)
+		err = json.NewDecoder(resp.Body).Decode(&p)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
 		fmt.Printf("|%-10s|%-2d|%-7s|%s|%-50s|\n", p.Name, p.ShelfLife, p.Units, p.ID, p.Image)
 		return &p, nil
 	} else {
-		fmt.Println(err)
+		fmt.Println(resp.Status)
 		return nil, err
 	}
 }
 
-func DeleteProductByID(id string, session string) {
+func deleteProductByID(id string, session string) {
 	req, err := http.NewRequest("DELETE", URL+"/products/remove/"+id, nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return
 	}
 	cookie := "sessionName=" + session
 	req.Header.Add("Cookie", cookie)
@@ -110,15 +123,17 @@ func DeleteProductByID(id string, session string) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return
 	}
 	fmt.Println("response Status:", resp.Status)
 }
 
-func GetAllProducts() {
+func getAllProducts() {
 	req, err := http.NewRequest("GET", URL+"/getProducts", nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return
 	}
 	cookie := "sessionName=" + session
 	req.Header.Add("Cookie", cookie)
@@ -128,7 +143,8 @@ func GetAllProducts() {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return
 	}
 	var products []Product
 	json.NewDecoder(resp.Body).Decode(&products)
@@ -137,15 +153,19 @@ func GetAllProducts() {
 	}
 }
 
-func AddProduct(name string, shelfLife int, image string, unit string) {
-	product := &Product{}
-	product.Name = name
-	product.ShelfLife = shelfLife
-	product.Image = image
-	product.Units = unit
+func addProduct(name string, shelfLife int, image string, unit string) {
+	product := &Product{Name: name, ShelfLife: shelfLife, Image: image, Units: unit}
 	url := URL + "/addProduct"
 	jsonStr, err := json.Marshal(product)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	if err != nil {
+		log.Println(err)
+		return
+	}
 	req.Header.Set("Content-Type", "application/json")
 	cookie := "sessionName" + "=" + session
 	req.Header.Add("Cookie", cookie)
@@ -155,15 +175,24 @@ func AddProduct(name string, shelfLife int, image string, unit string) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return
 	}
 	fmt.Println("response Status:", resp.Status)
 }
 
-func UpdateProduct(product *Product) {
+func updateProduct(product *Product) {
 	url := URL + "/updateProduct"
 	jsonStr, err := json.Marshal(product)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	if err != nil {
+		log.Println(err)
+		return
+	}
 	req.Header.Set("Content-Type", "application/json")
 	cookie := "sessionName=" + session
 	req.Header.Add("Cookie", cookie)
@@ -173,15 +202,17 @@ func UpdateProduct(product *Product) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return
 	}
 	fmt.Println("response Status:", resp.Status)
 }
 
-func Recepies() {
+func recepies() {
 	req, err := http.NewRequest("GET", URL+"/searchRecipes", nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return
 	}
 	cookie := "sessionName=" + session
 	req.Header.Add("Cookie", cookie)
@@ -191,7 +222,8 @@ func Recepies() {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+		return
 	}
 	var recipes []Recepie
 	json.NewDecoder(resp.Body).Decode(&recipes)
@@ -204,7 +236,7 @@ func loginFunc(login string, pass string) {
 	var jsonStr = []byte(`{"login":"` + login + `","pass":"` + pass + `"}`)
 	req, err := http.NewRequest("POST", URL+"/login", bytes.NewBuffer(jsonStr))
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -214,11 +246,11 @@ func loginFunc(login string, pass string) {
 		defer resp.Body.Close()
 	}
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	fmt.Println("response Status:", resp.Status)
-	if resp.Status == "200 OK" {
+	if resp.StatusCode == http.StatusOK {
 		str := resp.Header.Get("Set-Cookie")
 		r := strings.NewReplacer("=", " ", ";", " ")
 		str = r.Replace(str)
@@ -233,7 +265,7 @@ func logout() {
 
 func isAuthorized() bool {
 	if session == "" {
-		fmt.Println(errors.New("not authenticated"))
+		log.Println(errors.New("not authenticated"))
 		return false
 	}
 	return true
@@ -251,8 +283,7 @@ func printMenu() {
 	fmt.Println("7 recomended recepies (authentication needed)")
 	fmt.Println("8 login")
 	fmt.Println("9 logout")
-	fmt.Println("10 quit")
-	fmt.Println("====================================================")
+	fmt.Println("10 quit\n====================================================")
 }
 
 func main() {
@@ -271,87 +302,81 @@ func main() {
 		fmt.Scan(&choice)
 		switch choice {
 		case 1:
-			GetAllRecipes()
+			getAllRecipes()
 		case 2:
-			if !isAuthorized() {
-				continue
+			if isAuthorized() {
+				getAllProducts()
 			}
-			GetAllProducts()
 		case 3:
-			if !isAuthorized() {
-				continue
+			if isAuthorized() {
+				fmt.Println("Enter product name")
+				var name string
+				fmt.Scan(&name)
+				getProductByName(name)
 			}
-			fmt.Println("Enter produc name")
-			var name string
-			fmt.Scan(&name)
-			GetProductByName(name)
 		case 4:
-			if !isAuthorized() {
-				continue
+			if isAuthorized() {
+				var name, unit, image string
+				var shelfLife int
+				fmt.Println("Enter product name")
+				fmt.Scan(&name)
+				fmt.Println("Enter product shelf life")
+				fmt.Scan(&shelfLife)
+				fmt.Println("Enter product image link")
+				fmt.Scan(&image)
+				fmt.Println("Enter product measuring unit")
+				fmt.Scan(&unit)
+				addProduct(name, shelfLife, image, unit)
 			}
-			var name, unit, image string
-			var shelfLife int
-			fmt.Println("Enter produc name")
-			fmt.Scan(&name)
-			fmt.Println("Enter produc shelf life")
-			fmt.Scan(&shelfLife)
-			fmt.Println("Enter produc image link")
-			fmt.Scan(&image)
-			fmt.Println("Enter produc measuring unit")
-			fmt.Scan(&unit)
-			AddProduct(name, shelfLife, image, unit)
 		case 5:
-			if !isAuthorized() {
-				continue
+			if isAuthorized() {
+				fmt.Println("Enter product ID")
+				var id string
+				fmt.Scan(&id)
+				deleteProductByID(id, session)
 			}
-			fmt.Println("Enter produc ID")
-			var id string
-			fmt.Scan(&id)
-			DeleteProductByID(id, session)
 		case 6:
-			if !isAuthorized() {
-				continue
-			}
-			fmt.Println("Enter produc ID")
-			var id, name, shelfLife, image, unit string
-			fmt.Scan(&id)
-			p, err := GetProductByID(id)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-
-			fmt.Println("Old product name is " + p.Name + "; Enter new produc name (enter n if you do not wont to change it)")
-			fmt.Scan(&name)
-			if name != "n" {
-				p.Name = name
-			}
-			fmt.Println("Old product shelf life is " + strconv.Itoa(p.ShelfLife) + "; Enter new produc shelf life (enter n if you do not wont to change it)")
-			fmt.Scan(&shelfLife)
-			if shelfLife != "n" {
-				shelfLifeInt, err := strconv.Atoi(shelfLife)
+			if isAuthorized() {
+				fmt.Println("Enter product ID")
+				var id, name, shelfLife, image, unit string
+				fmt.Scan(&id)
+				p, err := getProductByID(id)
 				if err != nil {
-					fmt.Println(err)
+					log.Println(err)
 					continue
 				}
-				p.ShelfLife = shelfLifeInt
+
+				fmt.Println("Old product name is " + p.Name + "; Enter new product name (enter n if you do not wont to change it)")
+				fmt.Scan(&name)
+				if name != "n" {
+					p.Name = name
+				}
+				fmt.Println("Old product shelf life is " + strconv.Itoa(p.ShelfLife) + "; Enter new product shelf life (enter n if you do not wont to change it)")
+				fmt.Scan(&shelfLife)
+				if shelfLife != "n" {
+					shelfLifeInt, err := strconv.Atoi(shelfLife)
+					if err != nil {
+						fmt.Println(err)
+						continue
+					}
+					p.ShelfLife = shelfLifeInt
+				}
+				fmt.Println("Old image link is " + p.Image + "; Enter new product image link (enter n if you do not wont to change it)")
+				fmt.Scan(&image)
+				if image != "n" {
+					p.Image = image
+				}
+				fmt.Println("Old product measuring unit is " + p.Units + "; Enter new product measuring unit (enter n if you do not wont to change it)")
+				fmt.Scan(&unit)
+				if unit != "n" {
+					p.Units = unit
+				}
+				updateProduct(p)
 			}
-			fmt.Println("Old image link is " + p.Image + "; Enter new produc image link (enter n if you do not wont to change it)")
-			fmt.Scan(&image)
-			if image != "n" {
-				p.Image = image
-			}
-			fmt.Println("Old product measuring unit is " + p.Units + "; Enter new produc measuring unit (enter n if you do not wont to change it)")
-			fmt.Scan(&unit)
-			if unit != "n" {
-				p.Units = unit
-			}
-			UpdateProduct(p)
 		case 7:
-			if !isAuthorized() {
-				continue
+			if isAuthorized() {
+				recepies()
 			}
-			Recepies()
 		case 8:
 			var login, pass string
 			fmt.Println("Enter login")
@@ -360,11 +385,10 @@ func main() {
 			fmt.Scan(&pass)
 			loginFunc(login, pass)
 		case 9:
-			if !isAuthorized() {
-				continue
+			if isAuthorized() {
+				logout()
+				fmt.Println("Logged out")
 			}
-			logout()
-			fmt.Println("Logged out")
 		case 10:
 			fmt.Println("Bye!")
 		default:
