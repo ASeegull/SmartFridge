@@ -2,13 +2,14 @@ package staticServer
 
 import (
 	"net/http"
-	"os"
+	//"os"
 	"sync"
 
 	"github.com/ASeegull/SmartFridge/staticServer/config"
 	"github.com/davecheney/errors"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
+
 )
 
 // newRouter сreates and returns gorilla router
@@ -23,21 +24,22 @@ func newRouter(staticPath string) *mux.Router {
 // Run starts servers for http and https connections
 func Run(cfg *config.Config) {
 
-	var wg sync.WaitGroup
-
-	wg.Add(2)
+	//var wg sync.WaitGroup
+	//
+	//wg.Add(2)
 	r := newRouter(cfg.StaticPath)
-	port := os.Getenv("PORT")
-	if port != "" {
-		// production
+	//port := os.Getenv("5080")
+	port := "5080"
+	//if port != "" {
+	//	// production
 		log.WithField("port", port).Info("Server started")
 		log.Fatal(http.ListenAndServe(":"+port, r))
-	} else {
-		// dev
-		serve(wg, cfg, r)
-	}
-
-	wg.Wait()
+	//} else {
+	//	// dev
+	//	serve(wg, cfg, r)
+	//}
+	//
+	//wg.Wait()
 }
 
 func serve(wg sync.WaitGroup, cfg *config.Config, r *mux.Router) {
@@ -46,7 +48,6 @@ func serve(wg sync.WaitGroup, cfg *config.Config, r *mux.Router) {
 		defer wg.Done()
 		addr := cfg.HTTPAddr()
 		log.WithField("address", addr).Info("HTTP Server started")
-
 		if err := http.ListenAndServe(
 			addr, http.HandlerFunc(redirect(cfg.HTTPSAddr())),
 		); err != nil {
@@ -58,7 +59,6 @@ func serve(wg sync.WaitGroup, cfg *config.Config, r *mux.Router) {
 		defer wg.Done()
 		addr := cfg.HTTPSAddr()
 		log.WithField("address", addr).Info("HTTPS Server started")
-
 		if err := http.ListenAndServeTLS(
 			addr, cfg.Cert, cfg.Key, r,
 		); err != nil {

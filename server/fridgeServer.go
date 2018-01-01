@@ -3,6 +3,8 @@ package server
 import (
 	"net/http"
 
+	"os"
+
 	"github.com/ASeegull/SmartFridge/server/config"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -41,9 +43,10 @@ func Run(cfg config.ServerConfig) error {
 		AllowedMethods:   []string{"HEAD", "GET", "POST", "DELETE"},
 	}).Handler(newRouter())
 
-	log.Printf("Server started on %s:%s", cfg.Host, cfg.Port)
+	log.Printf("Server started on %s:%s", cfg.Host, os.Getenv("PORT"))
 	// return http.ListenAndServeTLS(cfg.Host+":"+cfg.Port, "cert.pem", "key.pem", handler)
 	return http.ListenAndServe(cfg.Host+":"+cfg.Port, handler)
+	return http.ListenAndServe(":"+os.Getenv("PORT"), handler)
 }
 
 func newRouter() *mux.Router {
