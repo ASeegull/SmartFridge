@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/ASeegull/SmartFridge",
-	"GoVersion": "go1.6",
+	"GoVersion": "go1.9.2",
 	"GodepVersion": "v79",
 	"Deps": [
 		{
