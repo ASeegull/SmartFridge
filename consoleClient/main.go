@@ -339,7 +339,7 @@ func getRecepiesroductNames(productNames []string) {
 
 func printMenu() {
 	fmt.Println("====================================================")
-	fmt.Println("Please choose:")
+	fmt.Println("Please choose: ")
 	fmt.Println("1 all recepies")
 	fmt.Println("2 all products (authentication needed)")
 	fmt.Println("3 get product dy name (authentication needed)")
