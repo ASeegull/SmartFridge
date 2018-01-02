@@ -1398,7 +1398,7 @@ var MainService = (function () {
     };
     MainService.prototype.deleteProduct = function (id) {
         return this.http
-            .delete(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + ("/products/remove/" + id), { observe: 'response', withCredentials: true });
+            .delete(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + ("products/remove/" + id), { observe: 'response', withCredentials: true });
     };
     MainService = __decorate([
         Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])(),
