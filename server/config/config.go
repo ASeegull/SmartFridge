@@ -42,7 +42,7 @@ type ServerConfig struct {
 }
 
 const (
-	serverConfigPath = "./config/config.yaml"
+	serverConfigPath = "./config.yaml"
 )
 
 //ReadConfig reads config from file
