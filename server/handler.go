@@ -445,7 +445,7 @@ func deleteProduct(w http.ResponseWriter, r *http.Request) {
 }
 
 func getRecipesByProductName(w http.ResponseWriter, r *http.Request) {
-	productName := mux.Vars(r)["productName"]
+	productName := mux.Vars(r)["name"]
 	recipes, err := database.GetRecepiesByProductName(productName)
 
 	if err != nil {
