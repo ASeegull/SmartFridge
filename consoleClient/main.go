@@ -333,7 +333,7 @@ func getRecepiesroductNames(productNames []string) {
 	json.NewDecoder(resp.Body).Decode(&recipes)
 	fmt.Printf("|%-2s|%-10s|%-15s|%-15s|%-25s|%-20s\n", "No", "Name", "Description", "Complexity", "Coocking time in minutes", "Ingredients")
 	for k, v := range recipes {
-		fmt.Printf("|%-2d|%-10s|%-15s|%-15s|%-25d|%-20s\n", k, v.RecName, v.Description, v.Complexity, v.CoockingTimeMin, v.Ingred)
+		fmt.Printf("|%-2d|%-10s|%-15s|%-15s|%-25d|%-20s\n", k+1, v.RecName, v.Description, v.Complexity, v.CoockingTimeMin, v.Ingred)
 	}
 }
 
@@ -355,11 +355,12 @@ func printMenu() {
 }
 
 func main() {
-	config, err := ReadConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
-	URL = config.ServerAddress
+	//config, err := ReadConfig()
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//URL = config.ServerAddress
+	URL = "http://fierce-castle-11084.herokuapp.com/client"
 
 	fmt.Println("====================================================")
 	fmt.Println("Welcome to the smart frige console client")
