@@ -4,7 +4,7 @@ package database
 type FoodInfo struct {
 	Product   string `bson:"product" json:"product"`
 	Weight    int32  `bson:"weight" json:"weight"`
-	Expires   string `bson:"stateExpires" json:"stateExpires"`
+	Expires   string `bson:"stateexpires" json:"stateExpires"`
 	Condition string `bson:"condition" json:"condition"`
 }
 
@@ -15,7 +15,7 @@ type FoodAgent struct {
 	AgentID      string `bson:"agentid"`
 	Product      string `bson:"productid"`
 	Weight       int32  `bson:"weight"`
-	StateExpires string `bson:"stateExpires"`
+	StateExpires string `bson:"stateexpires"`
 }
 
 //MUnit represents units of measure used for products
@@ -45,11 +45,11 @@ type Ingridient struct {
 
 //Product represents an product
 type Product struct {
-	ID        string `json:"productID"`
-	Name      string `json:"productName"`
-	ShelfLife int    `json:"productShelfLife"`
-	Units     string `json:"productUnit"`
-	Image     string `json:"image"`
+	ID        string `json:"ID"`
+	Name      string `json:"name"`
+	ShelfLife int    `json:"shelfLife"`
+	Units     string `json:"units"`
+	Image     string `json:"imageURL"`
 }
 
 //Recepie represents a recepie

@@ -315,7 +315,6 @@ func productAdd(w http.ResponseWriter, r *http.Request) {
 		sendResponse(w, http.StatusMethodNotAllowed, errors.New("not allowed"))
 		return
 	}
-
 	newProduct := &database.Product{}
 
 	if err := json.NewDecoder(r.Body).Decode(&newProduct); err != nil {
@@ -323,7 +322,7 @@ func productAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := database.AddProduct(newProduct.Name, newProduct.ShelfLife, newProduct.Units, newProduct.Image); err != nil {
+	if err := database.AddProduct(newProduct); err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -435,8 +434,7 @@ func deleteProduct(w http.ResponseWriter, r *http.Request) {
 		sendResponse(w, http.StatusMethodNotAllowed, errors.New("not allowed"))
 		return
 	}
-	vars := mux.Vars(r)
-	ID := vars["id"]
+	ID := mux.Vars(r)["id"]
 
 	if err := database.DeleteProductByID(ID); err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
