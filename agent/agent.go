@@ -27,6 +27,8 @@ type controls struct {
 	setup        *pb.Setup
 }
 
+const defaultHeartBeat = 10
+
 //Start runs agent
 func Start(cfg *Config, ctx context.Context) error {
 	agent := &controls{}
@@ -90,7 +92,14 @@ func streamAgentState(ctx context.Context, agent *controls, messages chan []byte
 	log.Info("Starting streaming agent state")
 	agentInfo := foodAgentGenerator(agent.tokenRequest, agent.setup)
 	defer agent.wg.Done()
-	ticker := time.NewTicker(time.Second * time.Duration(agent.setup.Heartbeat))
+	var timeHeart int32
+	if agent.setup.Heartbeat == 0 {
+		timeHeart = defaultHeartBeat
+	} else {
+		timeHeart = agent.setup.Heartbeat
+	}
+
+	ticker := time.NewTicker(time.Second * time.Duration(timeHeart))
 	for {
 		select {
 		case <-ctx.Done():
@@ -115,7 +124,7 @@ func streamAgentState(ctx context.Context, agent *controls, messages chan []byte
 func agentInit() *pb.Request {
 	id := uuid.NewV4().String()
 	log.Infof("Container %s is starting", id)
-	return &pb.Request{id}
+	return &pb.Request{AgentID: id}
 }
 
 func timeReader(ctx context.Context, agent *controls, messages chan []byte) {
