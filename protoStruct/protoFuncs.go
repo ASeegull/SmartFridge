@@ -20,6 +20,12 @@ func (str *Setup) SetParameters(agentID, userID, productID string, heartbeat int
 	str.Heartbeat = int32(heartbeat)
 	str.Token = getHash(fmt.Sprintf("%s%s%s", agentID, userID, productID))
 }
+//SetParameters sets parameter to struct for information update
+func (str *Setup) UpdateParameters(productID string, time string, heartbeat int) {
+	str.ProductID = productID
+	str.StateExpires = time
+	str.Heartbeat = int32(heartbeat)
+}
 
 //MarshalStruct marshals this struct
 func (str *Agentstate) MarshalStruct() ([]byte, error) {

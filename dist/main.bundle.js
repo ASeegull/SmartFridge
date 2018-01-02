@@ -665,7 +665,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/main/item/item.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<header>\n  <h3 class=\"title\">{{ product.name | titlecase }}</h3>\n</header>\n<main>\n  <img class=\"product-image\" [src]=\"product.imageURL\" alt=\"Product image\">\n  <p> Shelf Life: {{ product.shelfLife }} </p>\n  <p> Measurement Units: {{ product.units }} </p>\n  <app-update-product-modal [product]=\"product\"></app-update-product-modal>\n  <div class=\"delete button\" (click)=\"deleteProduct()\">Delete Product</div>\n</main>"
+module.exports = "<header>\n  <h3 class=\"title\">{{ product.name | titlecase }}</h3>\n</header>\n<main>\n  <img class=\"product-image\" [src]=\"product.imageURL\" alt=\"Помідорка\"\n  [ngClass]=\"{'product-expired':product.condition === 'expired'}\">\n  <p> Shelf Life: {{ product.shelfLife }} </p>\n  <p> Measurement Units: {{ product.units }} </p>\n  <app-update-product-modal [product]=\"product\"></app-update-product-modal>\n  <div class=\"delete button\" (click)=\"deleteProduct()\">Delete Product</div>\n</main>"
 
 /***/ }),
 
@@ -832,7 +832,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/main/product/product.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<header>\n  <h3 class=\"title\">{{ product.product | titlecase }}</h3>\n  <div class=\"options\">\n      <app-search-modal title=\"Search recepies by this product\"\n          [ngClass]=\"{'search-accented':product.condition === 'warn'}\"\n          [productName]=\"product.product\">\n      </app-search-modal>\n      <app-modal [agent]=\"product\"></app-modal>\n  </div>\n</header>\n<main>\n  <img class=\"product-image\" [src]=\"product.imageURL\" alt=\"product-image\"\n  [ngClass]=\"{'product-expired':product.condition === 'expired'}\">\n  <p>Weight: {{ product.weight }}g</p>\n  <p>\n      <i *ngIf=\"product.condition === 'ok'\" class=\"fa fa-smile-o text-ok\" aria-hidden=\"true\"></i>\n      <i *ngIf=\"product.condition === 'warn'\" class=\"fa fa-exclamation-triangle text-warn\" aria-hidden=\"true\"></i>\n      <i *ngIf=\"product.condition === 'expired'\" class=\"fa fa-frown-o text-alert\" aria-hidden=\"true\"></i>\n      Expires: {{ product.stateExpires }}\n  </p>\n  <p *ngIf=\"product.condition === 'warn'\" class=\"text-warn\">This product is about to expire... Let's see, how we can use it</p>\n  <p *ngIf=\"product.condition === 'expired'\" class=\"text-alert\">Oops... This product isn't safe anymore</p>\n</main>"
+module.exports = "<header>\n  <h3 class=\"title\">{{ product.product | titlecase }}</h3>\n  <div class=\"options\">\n      <app-search-modal title=\"Search recepies by this product\"\n          [ngClass]=\"{'search-accented':product.condition === 'warn'}\"\n          [productName]=\"product.product\">\n      </app-search-modal>\n      <app-modal [agent]=\"product\"></app-modal>\n  </div>\n</header>\n<main>\n  <img class=\"product-image\" src=\"assets/tomato.jpg\" alt=\"Помідорка\"\n  [ngClass]=\"{'product-expired':product.condition === 'expired'}\">\n  <p>Weight: {{ product.weight }}g</p>\n  <p>\n      <i *ngIf=\"product.condition === 'ok'\" class=\"fa fa-smile-o text-ok\" aria-hidden=\"true\"></i>\n      <i *ngIf=\"product.condition === 'warn'\" class=\"fa fa-exclamation-triangle text-warn\" aria-hidden=\"true\"></i>\n      <i *ngIf=\"product.condition === 'expired'\" class=\"fa fa-frown-o text-alert\" aria-hidden=\"true\"></i>\n      Expires: {{ product.stateExpires }}\n  </p>\n  <p *ngIf=\"product.condition === 'warn'\" class=\"text-warn\">This product is about to expire... Let's see, how we can use it</p>\n  <p *ngIf=\"product.condition === 'expired'\" class=\"text-alert\">Oops... This product isn't safe anymore</p>\n</main>"
 
 /***/ }),
 
@@ -1398,7 +1398,7 @@ var MainService = (function () {
     };
     MainService.prototype.deleteProduct = function (id) {
         return this.http
-            .delete(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + ("client/products/remove/" + id), { observe: 'response', withCredentials: true });
+            .delete(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + ("/products/remove/" + id), { observe: 'response', withCredentials: true });
     };
     MainService = __decorate([
         Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])(),

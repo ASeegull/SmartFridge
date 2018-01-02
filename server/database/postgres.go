@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ASeegull/SmartFridge/server/config"
+	"github.com/SmartFridge/server/config"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
@@ -87,28 +87,48 @@ func GetUserID(login string) (string, error) {
 }
 
 //CheckAgent checks agent registration, if agent is associated with a user returns true as first returning value
-func CheckAgent(idUser string, idAgent string) (bool, error) {
+func CheckAgent(idUser string, idAgent string) error {
 	var err error
-	userAgent := UserAgent{}
-	err = db.Where("user_agents.agent_id = ? AND user_agents.user_id = ?", idAgent, idUser).Find(&userAgent).Error
-	if err != nil {
-		return false, err
+	agent := Agent{}
+	err = db.Where("agents.id = ? AND agents.user_id = ?", idAgent, idUser).Find(&agent).Error
+	if err == gorm.ErrRecordNotFound {
+		return errors.New("unregistered agent")
 	}
-	return true, nil
+	if err != nil {
+		return err
+	}
+	return  nil
 }
 
-//RegisterNewAgent adds a new agent to user, returns nil if adding was successful
-func RegisterNewAgent(idUser string, agentSerial string) error {
-	agent := Agent{ID: uuid.NewV4().String(), AgentSerial: agentSerial}
+
+//RegisterNewAgent adds a new agent to database
+func RegisterNewAgent1(idAgent string) error {
+	agent := Agent{ID: idAgent}
 	rows := db.Create(&agent).RowsAffected
-	if rows != 1 {
-		return errors.New("can not register the agent")
+	if !(rows == 1) {
+		return errors.New("can not register an agent")
 	}
-	userAgent := UserAgent{AgentID: agent.ID, UserID: idUser}
-	rows = db.Create(&userAgent).RowsAffected
-	if rows != 1 {
-		return errors.New("can not associate the agent with the user")
+	return nil
+}
+
+//RegisterAgentWithUser adds a new agent to user, returns nil if adding was successful
+func RegisterAgentWithUser(idUser string, idAgent string) error {
+	agent := UserAgent{UserID: idUser, AgentID: idAgent}
+	rows := db.Create(&agent).RowsAffected
+	if !(rows == 1) {
+		return errors.New("can not register an agent")
 	}
+	return nil
+
+}
+func DeleteAgent (idAgent string )  error {
+	agent := Agent{}
+
+	err := db.Delete(&agent).Where("agents.id = ?", idAgent).Error
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

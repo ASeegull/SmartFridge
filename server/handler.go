@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ASeegull/SmartFridge/server/database"
+	"github.com/SmartFridge/server/database"
 	"github.com/davecheney/errors"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
-	pb "github.com/ASeegull/SmartFridge/protoStruct"
+	pb "github.com/SmartFridge/protoStruct"
 	"github.com/gorilla/mux"
 )
 
@@ -48,7 +48,22 @@ func checkSession(h http.HandlerFunc) http.HandlerFunc {
 		h.ServeHTTP(w, r)
 	})
 }
-
+// SendAgentSetup takes new settings and sends them to the specified agent via existing websocket connection
+//func SendAgentSetup(id string, settings *pb.Setup) error {
+//	agent := (*agentsList)[id]
+//
+//	{
+//		agent.Lock()
+//		agent.Setup = settings
+//		agent.Unlock()
+//	}
+//
+//	msg, err := settings.MarshalStruct()
+//	if err != nil {
+//		return errors.Wrapf(err, "failed to marshal setup")
+//	}
+//	return agent.Conn.WriteMessage(websocket.BinaryMessage, msg)
+//}
 func agentAuthentication(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -72,7 +87,7 @@ func agentAuthentication(w http.ResponseWriter, r *http.Request) {
 
 	//adminID is mock. Here must be call to postgress db (table user - agentsID)
 	userID, err := getUserID(r)
-	if err := database.RegisterNewAgent(userID, pbRequest.AgentID); err != nil {
+	if err := database.RegisterAgentWithUser(userID, pbRequest.AgentID); err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -233,16 +248,77 @@ func searchRecipes(w http.ResponseWriter, r *http.Request) {
 }
 
 func addAgent(w http.ResponseWriter, r *http.Request) {
+	agent := &database.Agent{}
+	userId, err := getUserID(r)
+	if err != nil{
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := json.NewDecoder(r.Body).Decode(agent); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := database.CheckAgent(userId,agent.ID); err != errors.New("unregistered agent"){
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
 
+	if err := database.RegisterAgentWithUser(userId, agent.ID); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func removeAgent(w http.ResponseWriter, r *http.Request) {
-
+	agent := &database.UserAgent{}
+	userId, err := getUserID(r)
+	if err != nil{
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := json.NewDecoder(r.Body).Decode(agent); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := database.CheckAgent(userId, agent.AgentID); err != nil {
+		sendResponse(w, http.StatusUnauthorized, err)
+		return
+	}
+	if err := database.DeleteAgent(agent.AgentID); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func updateAgent(w http.ResponseWriter, r *http.Request) {
+	agentUpdate := &database.UpdatedAgent{}
+	if err := json.NewDecoder(r.Body).Decode(agentUpdate); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	userID, err := getUserID(r)
+	if err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := database.CheckAgent(userID, agentUpdate.AgentID); err != nil {
+		sendResponse(w, http.StatusUnauthorized, err)
+		return
+	}
+	resp := pb.Setup{}
+	resp.UpdateParameters(agentUpdate.Product,agentUpdate.StateExpires, defaultHeartBeat)
+
+	if err:= SendAgentSetup(agentUpdate.AgentID, &resp); err!=nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 
 }
+
 
 func clientLogin(w http.ResponseWriter, r *http.Request) {
 	user := &database.Login{}

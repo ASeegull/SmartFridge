@@ -18,6 +18,13 @@ type FoodAgent struct {
 	StateExpires string `bson:"stateExpires"`
 }
 
+//UpdateAgent is example struct for agent update
+type UpdatedAgent struct{
+	AgentID      string `bson:"agentid"`
+	Product      string `bson:"productid"`
+	StateExpires string `bson:"stateExpires"`
+}
+
 //MUnit represents units of measure used for products
 type MUnit struct {
 	ID   string
