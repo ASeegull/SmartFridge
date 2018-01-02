@@ -300,15 +300,15 @@ func contains(slice []string, v string) bool {
 }
 
 //AddProduct adds a new product, returns nil if adding was successful
-func AddProduct(prtduct *Product) error {
+func AddProduct(product *Product) error {
 	id := uuid.NewV4().String()
 	var mUnit MUnit
-	err := db.Table("m_units").Where("unit = ?", strings.ToLower(prtduct.Units)).First(&mUnit).Error
+	err := db.Table("m_units").Where("unit = ?", strings.ToLower(product.Units)).First(&mUnit).Error
 	if err != nil {
 		return err
 	}
-	product := Product{ID: id, Name: prtduct.Name, ShelfLife: prtduct.ShelfLife, Image: prtduct.Image, Units: mUnit.ID}
-	return db.Create(&product).Error
+	newProduct := Product{ID: id, Name: product.Name, ShelfLife: product.ShelfLife, Image: product.Image, Units: mUnit.ID}
+	return db.Create(&newProduct).Error
 }
 
 //FindProductByID returns a pointer to the product
