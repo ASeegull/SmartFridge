@@ -9,6 +9,7 @@ import (
 
 	"github.com/ASeegull/SmartFridge/server/config"
 	"github.com/davecheney/errors"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
@@ -77,12 +78,22 @@ func GetFoodsInFridge(containersID []string) ([]FoodInfo, error) {
 				return
 			}
 			mutex.Lock()
-			foods = append(foods, FoodInfo{agent.Product, agent.Weight, agent.StateExpires, checkConditions(agent.StateExpires)})
+			foods = append(foods, FoodInfo{Product: agent.Product, Weight: agent.Weight, Expires: agent.StateExpires, Condition: checkConditions(agent.StateExpires)})
 			mutex.Unlock()
 		}(&containersID[i])
 
 	}
 	wg.Wait()
+	URLs, err := GetImagesByNames(foods)
+	if err != nil {
+		logrus.Error(err)
+		return foods, nil
+	}
+	for index := range foods {
+		if url, ok := URLs[foods[index].Product]; ok {
+			foods[index].URL = url
+		}
+	}
 	return foods, nil
 }
 
@@ -93,7 +104,8 @@ func checkConditions(state string) string {
 		return ""
 	}
 
-	days := int(time.Since(productTime).Hours() / (-24))
+	days := time.Now().Sub(productTime).Hours() / 24
+	//int(time.Since(productTime).Hours() / (-24))
 	switch {
 	case days < 0:
 		return "expired"

@@ -20,6 +20,11 @@ const (
 	avgNumOfAgentsOfUser   = 10
 )
 
+const (
+	PublicToken = "verysecrettoken"
+	privateKey  = "muchmoresecrettoken"
+)
+
 var dbinfo string
 var db *gorm.DB
 
@@ -86,6 +91,12 @@ func GetUserID(login string) (string, error) {
 	return user.ID, nil
 }
 
+//GetUserID checks login and pass for client
+func CheckAgentRegistration(agentId string) bool {
+	_, ok := db.Where("agents.id = ? ", agentId).Get("user_id")
+	return !ok
+}
+
 //CheckAgent checks agent registration, if agent is associated with a user returns true as first returning value
 func CheckAgent(idUser string, idAgent string) (bool, error) {
 	var err error
@@ -98,18 +109,13 @@ func CheckAgent(idUser string, idAgent string) (bool, error) {
 }
 
 //RegisterNewAgent adds a new agent to user, returns nil if adding was successful
-func RegisterNewAgent(idUser string, agentSerial string) error {
-	agent := Agent{ID: uuid.NewV4().String(), AgentSerial: agentSerial}
-	rows := db.Create(&agent).RowsAffected
-	if rows != 1 {
-		return errors.New("can not register the agent")
-	}
-	userAgent := UserAgent{AgentID: agent.ID, UserID: idUser}
-	rows = db.Create(&userAgent).RowsAffected
-	if rows != 1 {
-		return errors.New("can not associate the agent with the user")
-	}
-	return nil
+func RegisterNewAgent(id string) error {
+	return db.Create(&Agent{ID: uuid.NewV4().String(), AgentSerial: id}).Error
+}
+
+//RegisterAgentWithUser adds a new agent to user, returns nil if adding was successful
+func RegisterAgentWithUser(idUser string, idAgent string) error {
+	return db.Create(&UserAgent{AgentID: idAgent, UserID: idUser}).Error
 }
 
 //GetAllAgentsIDForClient returns all agent for clientID as a slice of string
@@ -311,6 +317,14 @@ func AddProduct(product *Product) error {
 	return db.Create(&newProduct).Error
 }
 
+//CheckProductName checks if the product is presented in database
+func CheckProductName(productName string) error {
+	var productID string
+	row := db.Raw("select products.ID from products where products.name = ?;", strings.ToLower(productName)).Row()
+
+	return row.Scan(&productID)
+}
+
 //FindProductByID returns a pointer to the product
 func FindProductByID(pid string) (*Product, error) {
 	var name, unit, image string
@@ -443,7 +457,7 @@ func GetRecepiesByProductName(productName string) ([]Recepie, error) {
 				rows.Close()
 				return nil, err
 			}
-			recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount), unit, name)
+			recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
 		}
 		rows.Close()
 	}
@@ -489,6 +503,30 @@ func RecepiesByProducts(products []string) ([]Recepie, error) {
 		rows.Close()
 	}
 	return recipes, nil
+}
+
+//GetImagesByNames takes the slice of FoodInfo strucktures, returns a maps containing names ang image URLs
+func GetImagesByNames(foodInfoSlice []FoodInfo) (map[string]string, error) {
+	var productName, productImage string
+	productNameSlice := make([]string, 0, prognosedNumOfProducts)
+	imageMap := make(map[string]string)
+	for _, v := range foodInfoSlice {
+		productNameSlice = append(productNameSlice, strings.ToLower(v.Product))
+	}
+	rows, err := db.Raw("select products.name, products.image from products where products.name IN (?)", productNameSlice).Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		err := rows.Scan(&productName, &productImage)
+		if err != nil {
+			return nil, err
+		}
+		imageMap[productName] = productImage
+	}
+
+	return imageMap, nil
 }
 
 //CheckAdmin checks if current user has admins authorities

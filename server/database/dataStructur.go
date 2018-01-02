@@ -6,6 +6,7 @@ type FoodInfo struct {
 	Weight    int32  `bson:"weight" json:"weight"`
 	Expires   string `bson:"stateexpires" json:"stateExpires"`
 	Condition string `bson:"condition" json:"condition"`
+	URL       string `json:"imageURL"`
 }
 
 //FoodAgent is example struct for agent
