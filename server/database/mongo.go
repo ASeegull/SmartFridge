@@ -2,10 +2,8 @@ package database
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net"
 	"sync"
-	"time"
 
 	"github.com/ASeegull/SmartFridge/server/config"
 	"github.com/davecheney/errors"
@@ -77,29 +75,11 @@ func GetFoodsInFridge(containersID []string) ([]FoodInfo, error) {
 				return
 			}
 			mutex.Lock()
-			foods = append(foods, FoodInfo{agent.Product, agent.Weight, agent.StateExpires, checkConditions(agent.StateExpires)})
+			foods = append(foods, FoodInfo{agent.Product, agent.Weight, agent.StateExpires, ""})
 			mutex.Unlock()
 		}(&containersID[i])
 
 	}
 	wg.Wait()
 	return foods, nil
-}
-
-func checkConditions(state string) string {
-	productTime, err := time.Parse("2006-01-02", state)
-	if err != nil {
-		fmt.Println(err)
-		return ""
-	}
-
-	days := int(time.Since(productTime).Hours() / (-24))
-	switch {
-	case days < 0:
-		return "expired"
-	case days < 2:
-		return "warn"
-	default:
-		return "ok"
-	}
 }

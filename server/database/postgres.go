@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ASeegull/SmartFridge/server/config"
+	"github.com/SmartFridge/server/config"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
@@ -77,38 +77,53 @@ func ClientLogin(login string, pass string) error {
 }
 
 //GetUserID checks login and pass for client
-func GetUserID(login string) (string, error) {
-	user := User{}
-	err := db.Where("login = ?", login).Find(&user).Error
+func GetUserID(agentId string) (string, error) {
+	user := UserAgent{}
+	err := db.Where("agents.id = ? ").Find(&user).Error
 	if err != nil {
-		return "", errors.Wrapf(err, "cannot find user with login %s", login)
+		return "", errors.Wrapf(err, "cannot find user")
 	}
-	return user.ID, nil
+	return user.UserID, nil
 }
 
-//CheckAgent checks agent registration, if agent is associated with a user returns true as first returning value
-func CheckAgent(idUser string, idAgent string) (bool, error) {
+
+	//CheckAgent checks agent registration, if agent is associated with a user returns true as first returning value
+
+func CheckAgent(idUser string, idAgent string) error {
 	var err error
-	userAgent := UserAgent{}
-	err = db.Where("user_agents.agent_id = ? AND user_agents.user_id = ?", idAgent, idUser).Find(&userAgent).Error
-	if err != nil {
-		return false, err
+	agent := Agent{}
+	err = db.Where("agents.id = ? AND agents.user_id = ?", idAgent, idUser).Find(&agent).Error
+	if err == gorm.ErrRecordNotFound {
+		return errors.New("unregistered agent")
 	}
-	return true, nil
+	return  err
 }
 
-//RegisterNewAgent adds a new agent to user, returns nil if adding was successful
-func RegisterNewAgent(idUser string, agentSerial string) error {
-	agent := Agent{ID: uuid.NewV4().String(), AgentSerial: agentSerial}
+
+//RegisterNewAgent adds a new agent to database
+func RegisterNewAgent(idAgent string, AgentSerial string) error {
+	agent := Agent{ID: idAgent}
+	return db.Create(&agent).Error
+}
+
+//RegisterAgentWithUser adds a new agent to user, returns nil if adding was successful
+func RegisterAgentWithUser(idUser string, idAgent string) error {
+	agent := UserAgent{UserID: idUser, AgentID: idAgent}
 	rows := db.Create(&agent).RowsAffected
-	if rows != 1 {
-		return errors.New("can not register the agent")
+	if !(rows == 1) {
+		return errors.New("can not register an agent")
 	}
-	userAgent := UserAgent{AgentID: agent.ID, UserID: idUser}
-	rows = db.Create(&userAgent).RowsAffected
-	if rows != 1 {
-		return errors.New("can not associate the agent with the user")
+	return nil
+
+}
+func DeleteAgent (idAgent string )  error {
+	agent := Agent{}
+
+	err := db.Delete(&agent).Where("agents.id = ?", idAgent).Error
+	if err != nil {
+		return err
 	}
+
 	return nil
 }
 
@@ -118,6 +133,7 @@ func GetAllAgentsIDForClient(userID string) ([]string, error) {
 	var agentSerial string
 	agentIds := make([]string, 0, avgNumOfAgentsOfUser)
 	rows, err := db.Raw("select agents.agent_serial from agents join user_agents on user_agents.agent_id = agents.id where user_agents.user_id = ?;", userID).Rows()
+	fmt.Println(rows, err)
 	if err != nil {
 		return nil, err
 	}
@@ -300,15 +316,15 @@ func contains(slice []string, v string) bool {
 }
 
 //AddProduct adds a new product, returns nil if adding was successful
-func AddProduct(product *Product) error {
+func AddProduct(name string, shelfLife int, unit string, image string) error {
 	id := uuid.NewV4().String()
 	var mUnit MUnit
-	err := db.Table("m_units").Where("unit = ?", strings.ToLower(product.Units)).First(&mUnit).Error
+	err := db.Table("m_units").Where("unit = ?", strings.ToLower(unit)).First(&mUnit).Error
 	if err != nil {
 		return err
 	}
-	newProduct := Product{ID: id, Name: product.Name, ShelfLife: product.ShelfLife, Image: product.Image, Units: mUnit.ID}
-	return db.Create(&newProduct).Error
+	product := Product{ID: id, Name: name, ShelfLife: shelfLife, Image: image, Units: mUnit.ID}
+	return db.Create(&product).Error
 }
 
 //FindProductByID returns a pointer to the product

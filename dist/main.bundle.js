@@ -574,7 +574,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/main/add-product-modal/add-product-modal.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<div class=\"addProduct\" (click)=\"showModal();\">Add<br />Product</div>\n\n<modal #addProduct (onSubmit)=\"onSubmit()\" class=\"modalCenter\" submitButtonLabel=\"Update Product\">\n  <modal-header>\n      <h3>Update agent</h3>    \n      </modal-header>\n      <modal-content>\n            <form #updateProduct=\"ngForm\">\n                <label for=\"product\">Product</label>\t\n                <input type=\"text\" id=\"product\" [(ngModel)]=\"product.name\" name=\"name\">\n                <label for=\"expires\">Expiration Date</label>\t\n                <input type=\"number\" id=\"expires\" [(ngModel)]=\"product.shelfLife\" name=\"shelfLife\">\n                <label for=\"units\">Measurment Units</label>\t\n                <input type=\"text\" id=\"units\" [(ngModel)]=\"product.units\" name=\"units\">\n                <label for=\"imageURL\">Paste link to image</label>\t\n                <input type=\"text\" id=\"imageURL\" [(ngModel)]=\"product.imageURL\" name=\"imageURL\">\n                <p *ngIf=\"success\"><i class=\"fa fa-check\"></i>Your agent is successfully registered</p>\n                <p *ngIf=\"failed\"><i class=\"fa fa-times\" aria-hidden=\"true\"></i>Failed to send request</p>\n            </form>\n      </modal-content>\n  </modal>"
+module.exports = "<div class=\"addProduct\" (click)=\"showModal();\">Add<br />Product</div>\n\n<modal #addProduct (onSubmit)=\"onSubmit()\" class=\"modalCenter\" submitButtonLabel=\"Update Product\">\n  <modal-header>\n      <h3>Update agent</h3>    \n      </modal-header>\n      <modal-content>\n            <form #updateProduct=\"ngForm\">\n                <label for=\"product\">Product</label>\t\n                <input type=\"text\" id=\"product\" [(ngModel)]=\"product.name\" name=\"name\">\n                <label for=\"expires\">Expiration Date</label>\t\n                <input type=\"text\" id=\"expires\" [(ngModel)]=\"product.shelfLife\" name=\"shelfLife\">\n                <label for=\"units\">Measurment Units</label>\t\n                <input type=\"text\" id=\"units\" [(ngModel)]=\"product.units\" name=\"units\">\n                <label for=\"imageURL\">Paste link to image</label>\t\n                <input type=\"text\" id=\"imageURL\" [(ngModel)]=\"product.imageURL\" name=\"imageURL\">\n                <p *ngIf=\"success\"><i class=\"fa fa-check\"></i>Your agent is successfully registered</p>\n                <p *ngIf=\"failed\"><i class=\"fa fa-times\" aria-hidden=\"true\"></i>Failed to send request</p>\n            </form>\n      </modal-content>\n  </modal>"
 
 /***/ }),
 
@@ -601,13 +601,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var AddProductModalComponent = (function () {
     function AddProductModalComponent(mainService) {
         this.mainService = mainService;
-        this.product = new __WEBPACK_IMPORTED_MODULE_2__models_ingredient__["a" /* Ingredient */]();
+        this.product = new (__WEBPACK_IMPORTED_MODULE_2__models_ingredient__["a" /* Ingredient */]);
         this.success = false;
         this.failed = false;
     }
     AddProductModalComponent.prototype.ngOnInit = function () {
-        console.log('#########');
-        console.log(this.product);
     };
     AddProductModalComponent.prototype.showModal = function () {
         this.addProduct.open();
@@ -667,7 +665,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/main/item/item.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<header>\n  <h3 class=\"title\">{{ product.name | titlecase }}</h3>\n</header>\n<main>\n  <img class=\"product-image\" [src]=\"product.imageURL\" alt=\"Product image\">\n  <p> Shelf Life: {{ product.shelfLife }} </p>\n  <p> Measurement Units: {{ product.units }} </p>\n  <app-update-product-modal [product]=\"product\"></app-update-product-modal>\n  <div class=\"delete button\" (click)=\"deleteProduct()\">Delete Product</div>\n</main>"
+module.exports = "<header>\n  <h3 class=\"title\">{{ product.name | titlecase }}</h3>\n</header>\n<main>\n  <img class=\"product-image\" [src]=\"product.imageURL\" alt=\"Помідорка\"\n  [ngClass]=\"{'product-expired':product.condition === 'expired'}\">\n  <p> Shelf Life: {{ product.shelfLife }} </p>\n  <p> Measurement Units: {{ product.units }} </p>\n  <app-update-product-modal [product]=\"product\"></app-update-product-modal>\n  <div class=\"delete button\" (click)=\"deleteProduct()\">Delete Product</div>\n</main>"
 
 /***/ }),
 
@@ -834,7 +832,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/main/product/product.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<header>\n  <h3 class=\"title\">{{ product.product | titlecase }}</h3>\n  <div class=\"options\">\n      <app-search-modal title=\"Search recepies by this product\"\n          [ngClass]=\"{'search-accented':product.condition === 'warn'}\"\n          [productName]=\"product.product\">\n      </app-search-modal>\n      <app-modal [agent]=\"product\"></app-modal>\n  </div>\n</header>\n<main>\n  <img class=\"product-image\" [src]=\"product.imageURL\" alt=\"product-image\"\n  [ngClass]=\"{'product-expired':product.condition === 'expired'}\">\n  <p>Weight: {{ product.weight }}g</p>\n  <p>\n      <i *ngIf=\"product.condition === 'ok'\" class=\"fa fa-smile-o text-ok\" aria-hidden=\"true\"></i>\n      <i *ngIf=\"product.condition === 'warn'\" class=\"fa fa-exclamation-triangle text-warn\" aria-hidden=\"true\"></i>\n      <i *ngIf=\"product.condition === 'expired'\" class=\"fa fa-frown-o text-alert\" aria-hidden=\"true\"></i>\n      Expires: {{ product.stateExpires }}\n  </p>\n  <p *ngIf=\"product.condition === 'warn'\" class=\"text-warn\">This product is about to expire... Let's see, how we can use it</p>\n  <p *ngIf=\"product.condition === 'expired'\" class=\"text-alert\">Oops... This product isn't safe anymore</p>\n</main>"
+module.exports = "<header>\n  <h3 class=\"title\">{{ product.product | titlecase }}</h3>\n  <div class=\"options\">\n      <app-search-modal title=\"Search recepies by this product\"\n          [ngClass]=\"{'search-accented':product.condition === 'warn'}\"\n          [productName]=\"product.product\">\n      </app-search-modal>\n      <app-modal [agent]=\"product\"></app-modal>\n  </div>\n</header>\n<main>\n  <img class=\"product-image\" src=\"assets/tomato.jpg\" alt=\"Помідорка\"\n  [ngClass]=\"{'product-expired':product.condition === 'expired'}\">\n  <p>Weight: {{ product.weight }}g</p>\n  <p>\n      <i *ngIf=\"product.condition === 'ok'\" class=\"fa fa-smile-o text-ok\" aria-hidden=\"true\"></i>\n      <i *ngIf=\"product.condition === 'warn'\" class=\"fa fa-exclamation-triangle text-warn\" aria-hidden=\"true\"></i>\n      <i *ngIf=\"product.condition === 'expired'\" class=\"fa fa-frown-o text-alert\" aria-hidden=\"true\"></i>\n      Expires: {{ product.stateExpires }}\n  </p>\n  <p *ngIf=\"product.condition === 'warn'\" class=\"text-warn\">This product is about to expire... Let's see, how we can use it</p>\n  <p *ngIf=\"product.condition === 'expired'\" class=\"text-alert\">Oops... This product isn't safe anymore</p>\n</main>"
 
 /***/ }),
 
@@ -1111,7 +1109,7 @@ module.exports = module.exports.toString();
 /***/ "../../../../../src/app/main/update-product-modal/update-product-modal.component.html":
 /***/ (function(module, exports) {
 
-module.exports = "<div class=\"update button\" (click)=\"openModal()\">Update Product</div>\n\n<modal #updateProduct (onSubmit)=\"onSubmit()\" class=\"modalCenter\" submitButtonLabel=\"Update Product\">\n  <modal-header>\n      <h3>Update agent</h3>    \n      </modal-header>\n      <modal-content>\n            <form #updateProduct=\"ngForm\">\n                <label for=\"product\">Product</label>\t\n                <input type=\"text\" id=\"product\" [(ngModel)]=\"product.name\" name=\"name\">\n                <label for=\"expires\">Expiration Date</label>\t\n                <input type=\"number\" id=\"expires\" [(ngModel)]=\"product.shelfLife\" name=\"shelfLife\">\n                <label for=\"units\">Measurment Units</label>\t\n                <input type=\"text\" id=\"units\" [(ngModel)]=\"product.units\" name=\"units\">\n                <label for=\"imageURL\">Paste link to image</label>\t\n                <input type=\"text\" id=\"imageURL\" [(ngModel)]=\"product.imageURL\" name=\"imageURL\">\n                <p *ngIf=\"success\"><i class=\"fa fa-check\"></i>Your agent is successfully registered</p>\n                <p *ngIf=\"failed\"><i class=\"fa fa-times\" aria-hidden=\"true\"></i>Failed to send request</p>\n            </form>\n      </modal-content>\n  </modal>"
+module.exports = "<div class=\"update button\" (click)=\"openModal()\">Update Product</div>\n\n<modal #updateProduct (onSubmit)=\"onSubmit()\" class=\"modalCenter\" submitButtonLabel=\"Update Product\">\n  <modal-header>\n      <h3>Update agent</h3>    \n      </modal-header>\n      <modal-content>\n            <form #updateProduct=\"ngForm\">\n                <label for=\"product\">Product</label>\t\n                <input type=\"text\" id=\"product\" [(ngModel)]=\"product.name\" name=\"name\">\n                <label for=\"expires\">Expiration Date</label>\t\n                <input type=\"text\" id=\"expires\" [(ngModel)]=\"product.shelfLife\" name=\"shelfLife\">\n                <label for=\"units\">Measurment Units</label>\t\n                <input type=\"text\" id=\"units\" [(ngModel)]=\"product.units\" name=\"units\">\n                <label for=\"imageURL\">Paste link to image</label>\t\n                <input type=\"text\" id=\"imageURL\" [(ngModel)]=\"product.imageURL\" name=\"imageURL\">\n                <p *ngIf=\"success\"><i class=\"fa fa-check\"></i>Your agent is successfully registered</p>\n                <p *ngIf=\"failed\"><i class=\"fa fa-times\" aria-hidden=\"true\"></i>Failed to send request</p>\n            </form>\n      </modal-content>\n  </modal>"
 
 /***/ }),
 
@@ -1142,7 +1140,6 @@ var UpdateProductModalComponent = (function () {
         this.failed = false;
     }
     UpdateProductModalComponent.prototype.ngOnInit = function () {
-        console.log(this.product);
     };
     UpdateProductModalComponent.prototype.openModal = function () {
         this.updateProduct.open();
@@ -1190,13 +1187,12 @@ var UpdateProductModalComponent = (function () {
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Agent; });
 var Agent = (function () {
-    function Agent(obj) {
-        this.agentID = obj && obj.agentID || null;
-        this.product = obj && obj.product || null;
-        this.weight = obj && Number(obj.weight) || null;
-        this.stateExpires = obj && obj.stateExpires || null;
-        this.condition = obj && obj.condition || null;
-        this.imageURL = obj && obj.imageURL || null;
+    function Agent() {
+        // this.agentID = obj && obj.agentID;
+        // this.product = obj && obj.product;
+        // this.weight = obj && obj.weight;
+        // this.stateExpires = obj && obj.stateExpires;
+        // this.condition = obj && obj.condition;
     }
     return Agent;
 }());
@@ -1235,12 +1231,7 @@ var User = (function () {
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return Ingredient; });
 var Ingredient = (function () {
-    function Ingredient(obj) {
-        this.ID = obj && obj.ID || null;
-        this.name = obj && obj.name || null;
-        this.shelfLife = obj && Number(obj.shelfLife) || null;
-        this.units = obj && obj.units || null;
-        this.imageURL = obj && obj.imageURL || null;
+    function Ingredient() {
     }
     return Ingredient;
 }());
@@ -1407,7 +1398,7 @@ var MainService = (function () {
     };
     MainService.prototype.deleteProduct = function (id) {
         return this.http
-            .delete(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + ("client/products/remove/" + id), { observe: 'response', withCredentials: true });
+            .delete(__WEBPACK_IMPORTED_MODULE_2__environments_environment__["a" /* environment */].apiURL + ("/products/remove/" + id), { observe: 'response', withCredentials: true });
     };
     MainService = __decorate([
         Object(__WEBPACK_IMPORTED_MODULE_0__angular_core__["Injectable"])(),
