@@ -88,27 +88,34 @@ func GetUserID(login string) (string, error) {
 }
 
 //CheckAgent checks agent registration, if agent is associated with a user returns true as first returning value
-func CheckAgent(idUser string, idAgent string) (bool, error) {
+func CheckAgent(idUser string, idAgent string) error {
 	var err error
-	userAgent := UserAgent{}
-	err = db.Where("user_agents.agent_id = ? AND user_agents.user_id = ?", idAgent, idUser).Find(&userAgent).Error
+	err = db.Where("user_agents.agent_id = ? AND user_agents.user_id = ?", idAgent, idUser).Error
 	if err != nil {
-		return false, nil
+		return errors.New("can not register an agent")
 	}
-	return true, nil
+	return nil
 }
 
 //RegisterNewAgent adds a new agent to user, returns nil if adding was successful
 func RegisterNewAgent(idUser string, agentSerial string) error {
 	agent := Agent{ID: uuid.NewV4().String(), AgentSerial: agentSerial}
-	rows := db.Create(&agent).RowsAffected
-	if !(rows == 1) {
+	err := db.Create(&agent).Error
+	if err != nil {
 		return errors.New("can not register the agent")
 	}
 	userAgent := UserAgent{AgentID: agent.ID, UserID: idUser}
-	rows = db.Create(&userAgent).RowsAffected
-	if !(rows == 1) {
-		return errors.New("can not associate the agent with the user")
+	return db.Create(&userAgent).Error
+}
+
+func DeleteAgent(idAgent, idUser string) error {
+	agent := Agent{}
+	if err := CheckAgent(idUser, idAgent); err != nil {
+		return errors.New("unregistered agent")
+	}
+	err := db.Delete(&agent).Where("agents.id = ?", idAgent).Error
+	if err != nil {
+		return err
 	}
 	return nil
 }

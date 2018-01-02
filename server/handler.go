@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	defaultHeartBeat = 3
+	defaultHeartBeat  = 3
+	newAgentHeartBeat = 60
 )
 
 func sendResponse(w http.ResponseWriter, status int, err error) {
@@ -63,33 +64,50 @@ func agentAuthentication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//get product is mock. user has to set it in server page
-	productName, err := getProduct()
-	if err != nil {
-		sendResponse(w, http.StatusInternalServerError, err)
-		return
-	}
+	//new,err := database.CheckIfExist()
+	//if err != nil{
+	//	sendResponse(w,http.StatusInternalServerError,err)
+	//	return
+	//}
+	//
+	//if new {
+	//	if err := database.RegisterAgent(pbRequest.AgentID);err != nil{
+	//		sendResponse(w,http.StatusInternalServerError,err)
+	//		return
+	//	}
+	//}
 
-	//adminID is mock. Here must be call to postgress db (table user - agentsID)
-	userID, err := getUserID(r)
-	if err := database.RegisterNewAgent(userID, pbRequest.AgentID); err != nil {
-		sendResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	resp := pb.Setup{}
-	resp.SetParameters(pbRequest.AgentID, userID, *productName, defaultHeartBeat)
-
-	data, err := resp.MarshalStruct()
-	if err != nil {
-		sendResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	_, err = w.Write(data)
-	if err != nil {
-		sendResponse(w, http.StatusInternalServerError, err)
-	}
+	sendResponse(w, http.StatusCreated, err)
+	w.Write([]byte("new token"))
+	return
+	//
+	////get product is mock. user has to set it in server page
+	//productName, err := getProduct()
+	//if err != nil {
+	//	sendResponse(w, http.StatusInternalServerError, err)
+	//	return
+	//}
+	//
+	////adminID is mock. Here must be call to postgress db (table user - agentsID)
+	//userID, err := getUserID(r)
+	//if err := database.RegisterNewAgent(userID, pbRequest.AgentID); err != nil {
+	//	sendResponse(w, http.StatusInternalServerError, err)
+	//	return
+	//}
+	//
+	//resp := pb.Setup{}
+	//resp.SetParameters(pbRequest.AgentID, userID, *productName, defaultHeartBeat)
+	//
+	//data, err := resp.MarshalStruct()
+	//if err != nil {
+	//	sendResponse(w, http.StatusInternalServerError, err)
+	//	return
+	//}
+	//
+	//_, err = w.Write(data)
+	//if err != nil {
+	//	sendResponse(w, http.StatusInternalServerError, err)
+	//}
 }
 
 //getProduct is mock. Method returns random product from postgres DB (table Products)
@@ -110,9 +128,22 @@ func createWS(w http.ResponseWriter, r *http.Request) {
 		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+	if err := addAgentConnections(conn); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
 
 	log.Printf("New websocket connect with %s", r.Host)
 	go wsListener(conn)
+}
+func addAgentConnections(conn *websocket.Conn) error {
+
+	return nil
+}
+
+func sendSetupToAgent(setup *pb.Setup) error {
+
+	return nil
 }
 
 func wsListener(conn *websocket.Conn) {
@@ -232,11 +263,66 @@ func searchRecipes(w http.ResponseWriter, r *http.Request) {
 }
 
 func addAgent(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserID(r)
+	if err != nil {
+		sendResponse(w, http.StatusUnauthorized, err)
+		return
+	}
 
+	type NewAgent struct {
+		ID           string `json:"agentID"`
+		ProductName  string `json:"product"`
+		StateExpires string `json:"stateExpires"`
+	}
+	agent := &NewAgent{}
+
+	if err := json.NewDecoder(r.Body).Decode(&agent); err != nil {
+		sendResponse(w, http.StatusUnauthorized, err)
+		return
+	}
+	// add agent to this active user
+	if err := database.RegisterNewAgent(userID, agent.ID); err != nil {
+		sendResponse(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	//if err := database.CheckProductName(agent.ProductName);err != nil{
+	//	sendResponse(w, http.StatusUnauthorized, err)
+	//	return
+	//}
+	resp := &pb.Setup{}
+	resp.SetParameters(agent.ID, userID, agent.ProductName, defaultHeartBeat)
+	if err := sendSetupToAgent(resp); err != nil {
+		sendResponse(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	state := pb.Agentstate{Token: resp.Token, AgentID: agent.ID, UserID: userID, ProductID: agent.ProductName, Weight: 369, StateExpires: agent.StateExpires}
+	err = database.SaveState(&state)
+	if err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	sendResponse(w, http.StatusOK, err)
 }
 
 func removeAgent(w http.ResponseWriter, r *http.Request) {
+	agent := &database.Agent{}
+	userId, err := getUserID(r)
+	if err != nil {
+		sendResponse(w, http.StatusUnauthorized, err)
+		return
+	}
+	if err := json.NewDecoder(r.Body).Decode(agent); err != nil {
+		sendResponse(w, http.StatusUnauthorized, err)
+		return
+	}
 
+	if err := database.DeleteAgent(agent.ID, userId); err != nil {
+		sendResponse(w, http.StatusUnauthorized, err)
+		return
+	}
+	sendResponse(w, http.StatusOK, err)
 }
 
 func updateAgent(w http.ResponseWriter, r *http.Request) {

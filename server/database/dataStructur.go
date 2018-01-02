@@ -4,7 +4,7 @@ package database
 type FoodInfo struct {
 	Product   string `bson:"product" json:"product"`
 	Weight    int32  `bson:"weight" json:"weight"`
-	Expires   string `bson:"stateExpires" json:"stateExpires"`
+	Expires   string `bson:"stateexpires" json:"stateExpires"`
 	Condition string `bson:"condition" json:"condition"`
 }
 
@@ -15,7 +15,7 @@ type FoodAgent struct {
 	AgentID      string `bson:"agentid"`
 	Product      string `bson:"productid"`
 	Weight       int32  `bson:"weight"`
-	StateExpires string `bson:"stateExpires"`
+	StateExpires string `bson:"stateexpires"`
 }
 
 //MUnit represents units of measure used for products
