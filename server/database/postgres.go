@@ -118,7 +118,6 @@ func GetAllAgentsIDForClient(userID string) ([]string, error) {
 	var agentSerial string
 	agentIds := make([]string, 0, avgNumOfAgentsOfUser)
 	rows, err := db.Raw("select agents.agent_serial from agents join user_agents on user_agents.agent_id = agents.id where user_agents.user_id = ?;", userID).Rows()
-	fmt.Println(rows, err)
 	if err != nil {
 		return nil, err
 	}
@@ -301,15 +300,15 @@ func contains(slice []string, v string) bool {
 }
 
 //AddProduct adds a new product, returns nil if adding was successful
-func AddProduct(name string, shelfLife int, unit string, image string) error {
+func AddProduct(product *Product) error {
 	id := uuid.NewV4().String()
 	var mUnit MUnit
-	err := db.Table("m_units").Where("unit = ?", strings.ToLower(unit)).First(&mUnit).Error
+	err := db.Table("m_units").Where("unit = ?", strings.ToLower(product.Units)).First(&mUnit).Error
 	if err != nil {
 		return err
 	}
-	product := Product{ID: id, Name: name, ShelfLife: shelfLife, Image: image, Units: mUnit.ID}
-	return db.Create(&product).Error
+	newProduct := Product{ID: id, Name: product.Name, ShelfLife: product.ShelfLife, Image: product.Image, Units: mUnit.ID}
+	return db.Create(&newProduct).Error
 }
 
 //FindProductByID returns a pointer to the product
