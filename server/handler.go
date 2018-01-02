@@ -3,10 +3,10 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"math/rand"
 	"net/http"
-	"time"
+	"os"
+	"os/signal"
+	"sync"
 
 	"github.com/ASeegull/SmartFridge/server/database"
 	"github.com/davecheney/errors"
@@ -49,61 +49,20 @@ func checkSession(h http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
-func agentAuthentication(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		sendResponse(w, http.StatusBadRequest, err)
-		return
-	}
-	defer r.Body.Close()
-
-	pbRequest := pb.Request{}
-	if err = pbRequest.UnmarshalToStruct(body); err != nil {
-		sendResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	//get product is mock. user has to set it in server page
-	productName, err := getProduct()
-	if err != nil {
-		sendResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	//adminID is mock. Here must be call to postgress db (table user - agentsID)
-	userID, err := getUserID(r)
-	if err := database.RegisterNewAgent(userID, pbRequest.AgentID); err != nil {
-		sendResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	resp := pb.Setup{}
-	resp.SetParameters(pbRequest.AgentID, userID, *productName, defaultHeartBeat)
-
-	data, err := resp.MarshalStruct()
-	if err != nil {
-		sendResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	_, err = w.Write(data)
-	if err != nil {
-		sendResponse(w, http.StatusInternalServerError, err)
-	}
+// Container holds ws connection for instance of agent and chan to send done signal to goroutines
+type Container struct {
+	sync.Mutex
+	sync.WaitGroup
+	Conn     *websocket.Conn
+	Setup    *pb.Setup
+	Shutdown chan struct{}
 }
 
-//getProduct is mock. Method returns random product from postgres DB (table Products)
-func getProduct() (*string, error) {
+// AgentsList contains all connected Agents for quick access to them
 
-	IDs, err := database.GetAllProductsNames()
-	if err != nil {
-		return nil, err
-	}
-	rand.Seed(time.Now().UTC().UnixNano())
+var agentsList = &map[string]*Container{}
 
-	return &IDs[rand.Intn(len(IDs))], nil
-}
-
+// createWS opens connection with agent and keeps it until the sigint is recieved
 func createWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -111,58 +70,106 @@ func createWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("New websocket connect with %s", r.Host)
-	go wsListener(conn)
-}
+	log.Infof("websocket connection with %s established", r.Host)
 
-func wsListener(conn *websocket.Conn) {
-	var err error
-
-	defer conn.Close()
-
-	defer func() {
-		if err != nil {
-			if err = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseInternalServerErr, err.Error())); err != nil {
-				log.Error(err)
-			}
-		}
+	done := make(chan struct{})
+	sign := make(chan os.Signal)
+	signal.Notify(sign, os.Interrupt)
+	go func() {
+		<-sign
+		log.Info("SIGINT recieved")
+		done <- struct{}{}
 	}()
 
+	id, err := agentAuthentication(conn)
+	agent := &Container{Conn: conn, Shutdown: done}
+	if _, ok := (*agentsList)[id]; !ok {
+		(*agentsList)[id] = agent
+	}
+
+	agent.Add(1)
+	go agent.ReadAgentState()
+	agent.Wait()
+}
+
+func agentAuthentication(conn *websocket.Conn) (string, error) {
+	t, data, err := conn.ReadMessage()
+	if err != nil {
+		return "", err
+	}
+	if t != websocket.BinaryMessage {
+		return "", errors.New("It is not BinaryMessage")
+	}
+
+	agentState := &pb.Agentstate{}
+
+	if err = agentState.UnmarshalToStruct(data); err != nil {
+		return "", err
+	}
+
+	if database.CheckAgentRegistration(agentState.Token) {
+		if err = database.RegisterNewAgent(agentState.AgentID); err != nil {
+			return agentState.AgentID, err
+		}
+	}
+
+	return agentState.AgentID, nil
+}
+
+// SendAgentSetup takes new settings and sends them to the specified agent via existing websocket connection
+func SendAgentSetup(id string, settings *pb.Setup) error {
+	agent := (*agentsList)[id]
+
+	{
+		agent.Lock()
+		agent.Setup = settings
+		agent.Unlock()
+	}
+
+	msg, err := settings.MarshalStruct()
+	if err != nil {
+		return err
+	}
+	return agent.Conn.WriteMessage(websocket.BinaryMessage, msg)
+}
+
+// ReadAgentState reads messages from agent and saves state to mongodb
+func (c *Container) ReadAgentState() {
+	defer c.Conn.Close()
+	defer c.Done()
 	for {
-		var data []byte
-		var t int
-
-		t, data, err = conn.ReadMessage()
-		if err != nil {
-			log.Errorf("cannot read from websocket %v", err)
+		select {
+		case <-c.Shutdown:
 			return
-		}
+		default:
+			t, data, err := c.Conn.ReadMessage()
+			if err != nil {
+				log.Errorf("cannot read from websocket %v", err)
+				return
+			}
 
-		if t == websocket.CloseNormalClosure {
-			log.Errorf("closed ws connection with %s", conn.RemoteAddr())
-			return
-		}
+			if t == websocket.CloseGoingAway {
+				log.Errorf("closed ws connection with %s", c.Conn.RemoteAddr())
+				return
+			}
 
-		agentState := &pb.Agentstate{}
+			agentState := &pb.Agentstate{}
 
-		if err = agentState.UnmarshalToStruct(data); err != nil {
-			log.Errorf("unmarshal data from websocket error: %v", err)
-			return
-		}
+			if err = agentState.UnmarshalToStruct(data); err != nil {
+				log.Error(err)
+				return
+			}
 
-		if !agentState.CheckToken() {
-			log.Error(errors.New("unauthorized agent detected"))
-			return
-		}
+			if !agentState.CheckToken() {
+				log.Error(errors.New("unauthorized agent detected"))
+				continue
+			}
 
-		if err = database.SaveState(agentState); err != nil {
-			log.Error(errors.New("save to db problem: "))
-			return
-		}
-
-		if err := conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("%s %s", time.Now().Format("2-Mon-Jan-2006-15:04:05"), "Ok!"))); err != nil {
-			log.Error(err)
-			return
+			log.Infof("agent state: %v", agentState)
+			if err = database.SaveState(agentState); err != nil {
+				log.Error(err)
+				return
+			}
 		}
 	}
 }
@@ -234,6 +241,60 @@ func searchRecipes(w http.ResponseWriter, r *http.Request) {
 
 func addAgent(w http.ResponseWriter, r *http.Request) {
 
+	userID, err := getUserID(r)
+	if err != nil {
+		sendResponse(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	type NewAgent struct {
+		ID           string `json:"agentID"`
+		ProductName  string `json:"product"`
+		StateExpires string `json:"stateExpires"`
+	}
+	agent := &NewAgent{}
+
+	if err := json.NewDecoder(r.Body).Decode(&agent); err != nil {
+		sendResponse(w, http.StatusUnauthorized, err)
+		return
+	}
+	if err := database.RegisterAgentWithUser(userID, agent.ID); err != nil {
+		sendResponse(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if err := database.CheckProductName(agent.ProductName); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	state := &pb.Setup{}
+	state.SetParameters(agent.ID, userID, agent.ProductName, defaultHeartBeat)
+	if err := SendAgentSetup(agent.ID, state); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	sendResponse(w, http.StatusOK, err)
+	//--------------------------------------------------------------------------------
+
+	//userId, err := getUserID(r)
+	//if err != nil {
+	//	sendResponse(w, http.StatusInternalServerError, err)
+	//	return
+	//}
+	//if err := json.NewDecoder(r.Body).Decode(agent); err != nil {
+	//	sendResponse(w, http.StatusInternalServerError, err)
+	//	return
+	//}
+	//if err := database.CheckAgent(userId, agent.ID); err != errors.New("unregistered agent") {
+	//	sendResponse(w, http.StatusInternalServerError, err)
+	//	return
+	//}
+	//
+	//if err := database.RegisterAgentWithUser(userId, agent.ID); err != nil {
+	//	sendResponse(w, http.StatusInternalServerError, err)
+	//	return
+	//}
+	//w.WriteHeader(http.StatusOK)
 }
 
 func removeAgent(w http.ResponseWriter, r *http.Request) {
@@ -315,7 +376,6 @@ func productAdd(w http.ResponseWriter, r *http.Request) {
 		sendResponse(w, http.StatusMethodNotAllowed, errors.New("not allowed"))
 		return
 	}
-
 	newProduct := &database.Product{}
 
 	if err := json.NewDecoder(r.Body).Decode(&newProduct); err != nil {
@@ -323,7 +383,7 @@ func productAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := database.AddProduct(newProduct.Name, newProduct.ShelfLife, newProduct.Units, newProduct.Image); err != nil {
+	if err := database.AddProduct(newProduct); err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -435,8 +495,7 @@ func deleteProduct(w http.ResponseWriter, r *http.Request) {
 		sendResponse(w, http.StatusMethodNotAllowed, errors.New("not allowed"))
 		return
 	}
-	vars := mux.Vars(r)
-	ID := vars["id"]
+	ID := mux.Vars(r)["id"]
 
 	if err := database.DeleteProductByID(ID); err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)

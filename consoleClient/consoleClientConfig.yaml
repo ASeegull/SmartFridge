@@ -1,4 +1,4 @@
 ConsoleClientConfig:
-serverAddress: "http://localhost:9000/client"
-#serverAddress: "http://pure-scrubland-63499.herokuapp.com/client"
+#serverAddress: "http://localhost:9000/client"
+serverAddress: "http://fierce-castle-11084.herokuapp.com/client"
 

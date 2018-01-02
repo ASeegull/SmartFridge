@@ -28,3 +28,18 @@ func ReadConfig() (*ConsoleClientConfig, error) {
 	}
 	return config, nil
 }
+
+////GetConf reads config from file
+//func GetConf(cfgPath string) (*ConsoleClientConfig, error) {
+//	read, err := ioutil.ReadFile(cfgPath)
+//
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	cfg := &ConsoleClientConfig{}
+//	if err = yaml.Unmarshal(read, &cfg); err != nil {
+//		return nil, err
+//	}
+//	return cfg, err
+//}

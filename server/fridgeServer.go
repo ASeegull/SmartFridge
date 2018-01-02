@@ -18,6 +18,7 @@ const (
 	GET  = http.MethodGet
 	POST = http.MethodPost
 	DEL  = http.MethodDelete
+	PUT  = http.MethodPut
 )
 
 var upgrader websocket.Upgrader
@@ -40,19 +41,17 @@ func Run(cfg config.ServerConfig) error {
 	handler := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:4200", "http://localhost:5080", "https://aseegull.github.io"},
 		AllowCredentials: true,
-		AllowedMethods:   []string{"HEAD", "GET", "POST", "DELETE"},
+		AllowedMethods:   []string{"HEAD", "GET", "POST", "PUT", "DELETE"},
 	}).Handler(newRouter())
 
 	log.Printf("Server started on %s:%s", cfg.Host, os.Getenv("PORT"))
 	// return http.ListenAndServeTLS(cfg.Host+":"+cfg.Port, "cert.pem", "key.pem", handler)
-	//return http.ListenAndServe(cfg.Host+":"+cfg.Port, handler)
-	return http.ListenAndServe(":"+os.Getenv("PORT"), handler)
+	return http.ListenAndServe(cfg.Host+":"+os.Getenv("PORT"), handler)
 }
 
 func newRouter() *mux.Router {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/agent", agentAuthentication).Methods(POST)
 	router.HandleFunc("/agent", createWS).Methods(GET)
 
 	sub := router.PathPrefix("/client").Subrouter()
@@ -60,15 +59,17 @@ func newRouter() *mux.Router {
 	sub.HandleFunc("/allRecipes", getRecipes).Methods(GET)
 	sub.HandleFunc("/searchRecipes", checkSession(searchRecipes)).Methods(GET)
 	sub.HandleFunc("/fridgeContent", checkSession(getFoodInfo)).Methods(GET)
+
 	sub.HandleFunc("/recipes/getByProductName/{name}", checkSession(getRecipesByProductName)).Methods(GET)
 	sub.HandleFunc("/recipes/recipesByProductNames", checkSession(recipesByProductNames)).Methods(POST)
 
 	sub.HandleFunc("/addProduct", checkSession(productAdd)).Methods(POST)
+	sub.HandleFunc("/updateProduct", checkSession(productUpdate)).Methods(PUT)
+	sub.HandleFunc("/products/remove/{id}", checkSession(deleteProduct)).Methods(DEL)
+
 	sub.HandleFunc("/getProducts", checkSession(getAllProducts)).Methods(GET)
-	sub.HandleFunc("/updateProduct", checkSession(productUpdate)).Methods(POST)
 	sub.HandleFunc("/products/getByID/{id}", checkSession(getProductByID)).Methods(GET)
 	sub.HandleFunc("/products/getByName/{name}", checkSession(getProductByName)).Methods(GET)
-	sub.HandleFunc("/products/remove/{id}", checkSession(deleteProduct)).Methods(DEL)
 
 	sub.HandleFunc("/addAgent", checkSession(addAgent)).Methods(POST)
 	sub.HandleFunc("/removeAgent", checkSession(removeAgent)).Methods(DEL)

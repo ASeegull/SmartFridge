@@ -12,16 +12,6 @@ mongoConfig:
   connectionsPool:  1000
 
 postgresConfig:
-#  dbhost: "localhost"
-#  dbport: "5432"
-#  dbUser: "goproject"
-#  dbPassword: "1715"
-#  dbName: "goproject"
-#  maxOpenedConnectionsToDb: 5
-#  maxIdleConnectionsToDb: 0
-#  mbConnMaxLifetimeMinutes: 30
-
-
   dbhost: "tantor.db.elephantsql.com"
   dbport: "5432"
   dbUser: "migsfgcy"
@@ -29,4 +19,4 @@ postgresConfig:
   dbName: "migsfgcy"
   maxOpenedConnectionsToDb: 5
   maxIdleConnectionsToDb: 0
-  mbConnMaxLifetimeMinutes: 30
+mbConnMaxLifetimeMinutes: 30

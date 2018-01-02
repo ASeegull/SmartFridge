@@ -42,8 +42,9 @@ func getAllRecipes() {
 	}
 	var recipes []Recepie
 	json.NewDecoder(resp.Body).Decode(&recipes)
+	fmt.Printf("|%-2s|%-10s|%-15s|%-15s|%-25s|%-20s\n", "No", "Name", "Description", "Complexity", "Coocking time in minutes", "Ingredients")
 	for k, v := range recipes {
-		fmt.Printf("|%-2d|%-10s|%s|%-7s|%-2d|%-20s|\n", k, v.RecName, v.Description, v.Complexity, v.CoockingTimeMin, v.Ingred)
+		fmt.Printf("|%-2d|%-10s|%-15s|%-15s|%-25d|%-20s\n", k, v.RecName, v.Description, v.Complexity, v.CoockingTimeMin, v.Ingred)
 	}
 }
 
@@ -71,7 +72,8 @@ func getProductByName(name string) {
 			log.Println(err)
 			return
 		}
-		fmt.Printf("|%-10s|%-2d|%-7s|%s|%-50s|\n", p.Name, p.ShelfLife, p.Units, p.ID, p.Image)
+		fmt.Printf("|%-10s|%-10s|%-7s|%-36s|%-36s\n", "Name", "Shelf life", "Units", "ID", "Image URL")
+		fmt.Printf("|%-10s|%-10d|%-7s|%-36s|%-250s\n", p.Name, p.ShelfLife, p.Units, p.ID, p.Image)
 	} else {
 		fmt.Println(resp.Status)
 	}
@@ -101,7 +103,8 @@ func getProductByID(id string) (*Product, error) {
 			log.Println(err)
 			return nil, err
 		}
-		fmt.Printf("|%-10s|%-2d|%-7s|%s|%-50s|\n", p.Name, p.ShelfLife, p.Units, p.ID, p.Image)
+		fmt.Printf("|%-10s|%-10s|%-7s|%-36s|%-36s\n", "Name", "Shelf life", "Units", "ID", "Image URL")
+		fmt.Printf("|%-10s|%-10d|%-7s|%-36s|%-250s\n", p.Name, p.ShelfLife, p.Units, p.ID, p.Image)
 		return &p, nil
 	} else {
 		fmt.Println(resp.Status)
@@ -148,13 +151,14 @@ func getAllProducts() {
 	}
 	var products []Product
 	json.NewDecoder(resp.Body).Decode(&products)
+	fmt.Printf("|%-2s|%-10s|%-10s|%-7s|%-36s|%-36s\n", "No", "Name", "Shelf life", "Units", "ID", "Image URL")
 	for k, v := range products {
-		fmt.Printf("|%-2d|%-10s|%-2d|%-7s|%s|%-50s|\n", k, v.Name, v.ShelfLife, v.Units, v.ID, v.Image)
+		fmt.Printf("|%-2d|%-10s|%-10d|%-7s|%-36s|%-250s\n", k, v.Name, v.ShelfLife, v.Units, v.ID, v.Image)
 	}
 }
 
 func addProduct(name string, shelfLife int, image string, unit string) {
-	product := &Product{Name: name, ShelfLife: shelfLife, Image: image, Units: unit}
+	product := &Product{Name: name, ShelfLife: shelfLife, Image: strings.Trim(image, " "), Units: unit}
 	url := URL + "/addProduct"
 	jsonStr, err := json.Marshal(product)
 	if err != nil {
@@ -227,8 +231,9 @@ func recepies() {
 	}
 	var recipes []Recepie
 	json.NewDecoder(resp.Body).Decode(&recipes)
+	fmt.Printf("|%-2s|%-10s|%-15s|%-15s|%-25s|%-20s\n", "No", "Name", "Description", "Complexity", "Coocking time in minutes", "Ingredients")
 	for k, v := range recipes {
-		fmt.Printf("|%-2d|%-10s|%s|%-7s|%-2d|%-20s|\n", k, v.RecName, v.Description, v.Complexity, v.CoockingTimeMin, v.Ingred)
+		fmt.Printf("|%-2d|%-10s|%-15s|%-15s|%-25d|%-20s\n", k, v.RecName, v.Description, v.Complexity, v.CoockingTimeMin, v.Ingred)
 	}
 }
 
@@ -287,6 +292,22 @@ func printMenu() {
 }
 
 func main() {
+
+	//cfgPath := flag.String(
+	//	"config",
+	//	"consoleClient/consoleClientConfig.yaml",
+	//	"Location of config File",
+	//)
+	//
+	//flag.Parse()
+	//
+	//cfg, err := consoleClient.GetConf(*cfgPath)
+	//if err != nil {
+	//
+	//	log.Fatal(err)
+	//}
+	//
+	//URL = cfg.ServerAddress
 	config, err := ReadConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -364,7 +385,7 @@ func main() {
 				fmt.Println("Old image link is " + p.Image + "; Enter new product image link (enter n if you do not wont to change it)")
 				fmt.Scan(&image)
 				if image != "n" {
-					p.Image = image
+					p.Image = strings.Trim(image, " ")
 				}
 				fmt.Println("Old product measuring unit is " + p.Units + "; Enter new product measuring unit (enter n if you do not wont to change it)")
 				fmt.Scan(&unit)
