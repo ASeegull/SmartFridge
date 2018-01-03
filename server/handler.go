@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
-	"os/signal"
+	"strings"
 	"sync"
 
 	"github.com/ASeegull/SmartFridge/server/database"
@@ -51,6 +50,7 @@ func checkSession(h http.HandlerFunc) http.HandlerFunc {
 
 // Container holds ws connection for instance of agent and chan to send done signal to goroutines
 type Container struct {
+	UserID string
 	sync.Mutex
 	sync.WaitGroup
 	Conn     *websocket.Conn
@@ -60,10 +60,19 @@ type Container struct {
 
 // AgentsList contains all connected Agents for quick access to them
 
-var agentsList = &map[string]*Container{}
+var agentsList = make(map[string]*Container)
 
 // createWS opens connection with agent and keeps it until the sigint is recieved
 func createWS(w http.ResponseWriter, r *http.Request) {
+	agentID := r.Header.Get("agentID")
+
+	if database.CheckAgentRegistration(agentID) {
+		if err := database.RegisterNewAgent(agentID); err != nil {
+			sendResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
@@ -72,53 +81,52 @@ func createWS(w http.ResponseWriter, r *http.Request) {
 
 	log.Infof("websocket connection with %s established", r.Host)
 
-	done := make(chan struct{})
-	sign := make(chan os.Signal)
-	signal.Notify(sign, os.Interrupt)
-	go func() {
-		<-sign
-		log.Info("SIGINT recieved")
-		done <- struct{}{}
-	}()
-
-	id, err := agentAuthentication(conn)
-	agent := &Container{Conn: conn, Shutdown: done}
-	if _, ok := (*agentsList)[id]; !ok {
-		(*agentsList)[id] = agent
-	}
+	agent := &Container{Conn: conn}
+	agentsList[agentID] = agent
 
 	agent.Add(1)
 	go agent.ReadAgentState()
 	agent.Wait()
 }
 
-func agentAuthentication(conn *websocket.Conn) (string, error) {
-	t, data, err := conn.ReadMessage()
-	if err != nil {
-		return "", err
-	}
-	if t != websocket.BinaryMessage {
-		return "", errors.New("It is not BinaryMessage")
-	}
-
-	agentState := &pb.Agentstate{}
-
-	if err = agentState.UnmarshalToStruct(data); err != nil {
-		return "", err
-	}
-
-	if database.CheckAgentRegistration(agentState.Token) {
-		if err = database.RegisterNewAgent(agentState.AgentID); err != nil {
-			return agentState.AgentID, err
-		}
-	}
-
-	return agentState.AgentID, nil
-}
+//func agentAuthentication(w http.ResponseWriter, r *http.Request) {
+//	//t, data, err := conn.ReadMessage()
+//	//if err != nil {
+//	//	return "", err
+//	//}
+//	//if t != websocket.BinaryMessage {
+//	//	return "", errors.New("It is not BinaryMessage")
+//	//}
+//
+//	data, err := ioutil.ReadAll(r.Body)
+//	if err != nil {
+//		sendResponse(w, http.StatusInternalServerError, err)
+//		return
+//	}
+//	request := &pb.Request{}
+//
+//	if err = request.UnmarshalToStruct(data); err != nil {
+//		sendResponse(w, http.StatusInternalServerError, err)
+//		return
+//	}
+//	fmt.Println("agentID", request.AgentID)
+//
+//	if database.CheckAgentRegistration(request.AgentID) {
+//		if err = database.RegisterNewAgent(request.AgentID); err != nil {
+//			sendResponse(w, http.StatusInternalServerError, err)
+//			return
+//		}
+//	}
+//
+//	sendResponse(w, http.StatusOK, nil)
+//}
 
 // SendAgentSetup takes new settings and sends them to the specified agent via existing websocket connection
 func SendAgentSetup(id string, settings *pb.Setup) error {
-	agent := (*agentsList)[id]
+	agent, ok := agentsList[id]
+	if !ok {
+		return errors.New("bad id")
+	}
 
 	{
 		agent.Lock()
@@ -258,43 +266,25 @@ func addAgent(w http.ResponseWriter, r *http.Request) {
 		sendResponse(w, http.StatusUnauthorized, err)
 		return
 	}
+	agent.ProductName = strings.ToLower(agent.ProductName)
+	if err := database.CheckProductName(agent.ProductName); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
 	if err := database.RegisterAgentWithUser(userID, agent.ID); err != nil {
 		sendResponse(w, http.StatusUnauthorized, err)
 		return
 	}
 
-	if err := database.CheckProductName(agent.ProductName); err != nil {
-		sendResponse(w, http.StatusInternalServerError, err)
-		return
-	}
 	state := &pb.Setup{}
 	state.SetParameters(agent.ID, userID, agent.ProductName, defaultHeartBeat)
+	state.StateExpires = agent.StateExpires
 	if err := SendAgentSetup(agent.ID, state); err != nil {
 		sendResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 	sendResponse(w, http.StatusOK, err)
-	//--------------------------------------------------------------------------------
-
-	//userId, err := getUserID(r)
-	//if err != nil {
-	//	sendResponse(w, http.StatusInternalServerError, err)
-	//	return
-	//}
-	//if err := json.NewDecoder(r.Body).Decode(agent); err != nil {
-	//	sendResponse(w, http.StatusInternalServerError, err)
-	//	return
-	//}
-	//if err := database.CheckAgent(userId, agent.ID); err != errors.New("unregistered agent") {
-	//	sendResponse(w, http.StatusInternalServerError, err)
-	//	return
-	//}
-	//
-	//if err := database.RegisterAgentWithUser(userId, agent.ID); err != nil {
-	//	sendResponse(w, http.StatusInternalServerError, err)
-	//	return
-	//}
-	//w.WriteHeader(http.StatusOK)
 }
 
 func removeAgent(w http.ResponseWriter, r *http.Request) {
@@ -302,6 +292,58 @@ func removeAgent(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateAgent(w http.ResponseWriter, r *http.Request) {
+	type updateAgent struct {
+		Product      string `json:"product"`
+		Weight       int    `json:"weight"`
+		StateExpires string `json:"statExpires"`
+		Condition    string `json:"condition"`
+		ImageURL     string `json:"imageURL"`
+	}
+	agentUpdate := &updateAgent{}
+	if err := json.NewDecoder(r.Body).Decode(agentUpdate); err != nil {
+		sendResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	if agentUpdate.Product == "" {
+		agentID, err := database.GetAgentIDFromSerial("e1379bc0-dce7-46e8-9bd0-a19ffa1f3bad")
+		if err != nil {
+			sendResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+		err = database.DeleteAgent(agentID)
+		if err != nil {
+			sendResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+		sendResponse(w, http.StatusOK, nil)
+		return
+	}
+	//userID, err := getUserID(r)
+	//if err != nil {
+	//	sendResponse(w, http.StatusInternalServerError, err)
+	//	return
+	//}
+	//if err := database.CheckAgent(userID, agentUpdate.AgentID); err != nil {
+	//	sendResponse(w, http.StatusUnauthorized, err)
+	//	return
+	//}
+	//resp := pb.Setup{}
+	//resp.UpdateParameters(agentUpdate.Product, agentUpdate.StateExpires, defaultHeartBeat)
+	//
+	////if err:= SendAgentSetup(agentUpdate.AgentID, &resp); err!=nil {
+	////	sendResponse(w, http.StatusInternalServerError, err)
+	////return
+	////}
+	//data, err := resp.MarshalStruct()
+	//if err != nil {
+	//	sendResponse(w, http.StatusInternalServerError, err)
+	//	return
+	//}
+	//
+	//_, err = w.Write(data)
+	//if err != nil {
+	//	sendResponse(w, http.StatusInternalServerError, err)
+	//}
 
 }
 

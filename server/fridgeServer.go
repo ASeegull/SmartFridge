@@ -50,6 +50,7 @@ func Run(cfg config.ServerConfig) error {
 func newRouter() *mux.Router {
 	router := mux.NewRouter()
 
+	//router.HandleFunc("/agent", agentAuthentication).Methods(POST)
 	router.HandleFunc("/agent", createWS).Methods(GET)
 
 	sub := router.PathPrefix("/client").Subrouter()

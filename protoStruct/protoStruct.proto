@@ -25,4 +25,5 @@ message setup {
     string productID = 2;
     string userID = 3;
     int32 heartbeat = 4;
+    string stateExpires = 5;
 }

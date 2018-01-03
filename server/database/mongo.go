@@ -89,10 +89,15 @@ func GetFoodsInFridge(containersID []string) ([]FoodInfo, error) {
 		logrus.Error(err)
 		return foods, nil
 	}
+
 	for index := range foods {
+		var productURL string
 		if url, ok := URLs[foods[index].Product]; ok {
-			foods[index].URL = url
+			productURL = url
+		} else {
+			productURL = "http://www.reallanguagerightaway.com/content/images/thumbs/default-image_450.png"
 		}
+		foods[index].URL = productURL
 	}
 	return foods, nil
 }
@@ -104,8 +109,7 @@ func checkConditions(state string) string {
 		return ""
 	}
 
-	days := time.Now().Sub(productTime).Hours() / 24
-	//int(time.Since(productTime).Hours() / (-24))
+	days := int(time.Since(productTime).Hours() / (-24))
 	switch {
 	case days < 0:
 		return "expired"
