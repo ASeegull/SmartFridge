@@ -1,9 +1,7 @@
 package database
 
 import (
-	"crypto/tls"
 	"fmt"
-	"net"
 	"sync"
 	"time"
 
@@ -37,17 +35,16 @@ func InitiateMongoDB(cfg config.MongoConfig) error {
 }
 
 func createSession() (*mgo.Session, error) {
-	dialInfo, err := mgo.ParseURL(mongoConfig.URI)
-	if err != nil {
-		return nil, err
-	}
-	tlsConfig := &tls.Config{InsecureSkipVerify: true}
-
-	dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
-		return tls.Dial("tcp", addr.String(), tlsConfig)
-	}
-
-	return mgo.DialWithInfo(dialInfo)
+	//dialInfo, err := mgo.ParseURL(mongoConfig.URI)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//tlsConfig := &tls.Config{InsecureSkipVerify: true}
+	//
+	//dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
+	//	return tls.Dial("tcp", addr.String(), tlsConfig)
+	//}
+	return mgo.Dial(mongoConfig.URI)
 }
 
 //SaveState saves state from agent
@@ -71,14 +68,14 @@ func GetFoodsInFridge(containersID []string) ([]FoodInfo, error) {
 		go func(val *string) {
 			var agent FoodAgent
 			defer wg.Done()
-			if err := c.Find(bson.M{"agentid": val}).One(&agent); err != nil {
+			if err := c.Find(bson.M{"agentid": val}).Sort("-_id").One(&agent); err != nil {
 				mutex.Lock()
 				notFound = append(notFound, *val)
 				mutex.Unlock()
 				return
 			}
 			mutex.Lock()
-			foods = append(foods, FoodInfo{Product: agent.Product, Weight: agent.Weight, Expires: agent.StateExpires, Condition: checkConditions(agent.StateExpires)})
+			foods = append(foods, FoodInfo{AgentID: agent.AgentID, Product: agent.Product, Weight: agent.Weight, Expires: agent.StateExpires, Condition: checkConditions(agent.StateExpires)})
 			mutex.Unlock()
 		}(&containersID[i])
 

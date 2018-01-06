@@ -42,7 +42,7 @@ type ServerConfig struct {
 }
 
 const (
-	serverConfigPath = "./config/config.yaml"
+	serverConfigPath = "./server/config/config.yaml"
 )
 
 //ReadConfig reads config from file
@@ -58,13 +58,3 @@ func ReadConfig() (*Config, error) {
 	}
 	return config, nil
 }
-
-////GetServerConfig returns server config
-//func (c *Config) GetServerConfig() *ServerConfig {
-//	return &c.Server
-//}
-//
-////GetMongoConfig returns mongoDB config
-//func (c *Config) GetMongoConfig() *MongoConfig {
-//	return &c.Mongo
-//}

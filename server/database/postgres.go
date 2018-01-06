@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ASeegull/SmartFridge/server/config"
@@ -130,13 +131,11 @@ func GetAgentIDFromSerial(serial string) (string, error) {
 	type userAgent struct {
 		ID string
 	}
-	fmt.Println("serial: ", serial)
 	user := &userAgent{}
 	err := db.Table("agents").Find(&user, "agent_serial = ? ", serial).Error
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("ID ->", user.ID)
 
 	return user.ID, nil
 }
@@ -239,6 +238,10 @@ func GetAllProductsNames() ([]string, error) {
 
 //Recipes takes the slice of FoodInfo strucktures, representing all available products in all agents and return all recepies, which can be offered
 func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
+	if len(foodInfoSlice) == 0 {
+		return []Recepie{{RecName: "Sorry but you do not have enough food"}}, nil
+	}
+
 	var err error
 	productNameSlice := make([]string, 0, avgNumrOfIngInRecepie)
 	productMap := make(map[string]int)
@@ -264,37 +267,49 @@ func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
 		return nil, err
 	}
 
-	var name, unit string
-	var amount int
 	copyRec := make([]Recepie, 0, len(recipes))
+	mu := sync.Mutex{}
+	wg := &sync.WaitGroup{}
 
-OUTER:
 	for key, recipe := range recipes {
-		rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
-			Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
-			Joins("JOIN products on ingridients.product_id = products.id").
-			Joins("JOIN m_units on m_units.id = products.units").
-			Where("recepies.id=?", recipe.ID).
-			Rows()
-		if err != nil {
-			rows.Close()
-			return nil, err
-		}
-		for rows.Next() {
-			err := rows.Scan(&amount, &unit, &name)
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, index int, recipe Recepie) {
+			var name, unit string
+			var amount int
+
+			defer wg.Done()
+
+			rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
+				Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
+				Joins("JOIN products on ingridients.product_id = products.id").
+				Joins("JOIN m_units on m_units.id = products.units").
+				Where("recepies.id=?", recipe.ID).
+				Rows()
 			if err != nil {
-				rows.Close()
-				return nil, err
+				return
 			}
-			if contains(productNameSlice, name) && amount <= productMap[name] {
-				recipe.Ingred = append(recipe.Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
-				recipes[key] = recipe
-			} else {
-				rows.Close()
-				continue OUTER
+			defer rows.Close()
+			for rows.Next() {
+				err := rows.Scan(&amount, &unit, &name)
+				if err != nil {
+					return
+				}
+				if contains(productNameSlice, name) && amount <= productMap[name] {
+					mu.Lock()
+					recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
+					mu.Unlock()
+				} else {
+					return
+				}
 			}
-		}
-		copyRec = append(copyRec, recipes[key])
+			mu.Lock()
+			copyRec = append(copyRec, recipes[key])
+			mu.Unlock()
+		}(wg, key, recipe)
+	}
+	wg.Wait()
+	if len(copyRec) == 0 {
+		return []Recepie{{RecName: "Sorry but you do not have enough food"}}, nil
 	}
 	return copyRec, nil
 }
@@ -432,10 +447,6 @@ func GetRecepiesByProductName(productName string) ([]Recepie, error) {
 		return nil, err
 	}
 
-	if len(recipes) == 0 {
-		return nil, errors.New("there are not recipes")
-	}
-
 	for key, recipe := range recipes {
 		rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
 			Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
@@ -455,6 +466,9 @@ func GetRecepiesByProductName(productName string) ([]Recepie, error) {
 			recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
 		}
 		rows.Close()
+	}
+	if len(recipes) == 0 {
+		return []Recepie{{RecName: "Sorry but there are not any recipes for this product"}}, nil
 	}
 	return recipes, nil
 }
@@ -496,6 +510,9 @@ func RecepiesByProducts(products []string) ([]Recepie, error) {
 			recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
 		}
 		rows.Close()
+	}
+	if len(recipes) == 0 {
+		return []Recepie{{RecName: "Sorry but there are not any recipes for these products"}}, nil
 	}
 	return recipes, nil
 }

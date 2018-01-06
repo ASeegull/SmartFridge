@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 
@@ -24,8 +25,16 @@ func main() {
 	signal.Notify(sign, os.Interrupt)
 	go func(ctx context.Context, sign chan os.Signal) {
 		<-sign
+		ctx.Done()
 		cancel()
 	}(ctx, sign)
+
+	go func(ctx context.Context) {
+		var word string
+		fmt.Scan(&word)
+		ctx.Done()
+		cancel()
+	}(ctx)
 
 	if err = agent.Start(cfg, ctx); err != nil {
 		log.Fatal(err)

@@ -18,124 +18,117 @@ import (
 
 // Controls is the one struct to rule them all :)
 type controls struct {
-	wg           sync.WaitGroup
-	conn         *websocket.Conn
-	tokenRequest *pb.Request
-	setup        *pb.Setup
+	wg          *sync.WaitGroup
+	conn        *websocket.Conn
+	containerID string
+	setup       *pb.Setup
+	mutex       *sync.Mutex
 }
 
 var agent *controls
+var containerState *pb.Agentstate
+var MarshaledAgentState []byte
+var r = rand.New(rand.NewSource(time.Now().UnixNano()))
 
-const defaultHeartBeat = 10
+var ticker *time.Ticker
+
+const defaultHeartBeat = 5
 
 //Start runs agent
 func Start(cfg *Config, ctx context.Context) error {
-	agent = &controls{}
-	agent.setup = &pb.Setup{}
-	var err error
-	agent.tokenRequest = agentInit()
-
-	// Get endpoints from config and make request to server to register agent entity
-	setupURL, wsURL := cfg.GetEndPoints()
-	//err = agentRegistration(setupURL, agent.tokenRequest)
-	if err != nil {
-		return errors.Wrapf(err, "could not set token for %s", setupURL)
-	}
+	containerID := getSerialID()
+	log.Infof("Container %s is starting", containerID)
 
 	dialer := websocket.Dialer{ReadBufferSize: 1024 * 4, WriteBufferSize: 1024 * 4}
 
-	header := http.Header{}
-	header.Add("agentID", agent.tokenRequest.AgentID)
+	agent = &controls{wg: &sync.WaitGroup{}, containerID: containerID, setup: &pb.Setup{}, mutex: &sync.Mutex{}}
 
+	header := http.Header{}
+	header.Add("agentID", containerID)
+
+	wsURL := cfg.GetEndPoints()
 	conn, resp, err := dialer.Dial(wsURL, header)
 	if err != nil || resp.StatusCode != http.StatusSwitchingProtocols {
 		return errors.Wrapf(err, "could not establish ws connection on %s. Status: %s", wsURL, resp.Status)
 	}
 	defer resp.Body.Close()
 
-	// Establish ws connection
 	agent.conn = conn
 	defer agent.conn.Close()
 
-	// Start listen and write on connection
+	ticker = time.NewTicker(time.Second * time.Duration(defaultHeartBeat))
+	defer ticker.Stop()
+
 	agent.wg.Add(2)
 	go timeReader(ctx, agent)
 	go streamAgentState(ctx, agent)
 	agent.wg.Wait()
+
 	return nil
 }
 
 func streamAgentState(ctx context.Context, agent *controls) {
-	log.Info("Starting streaming agent state")
 	defer agent.wg.Done()
-	var timeHeart int32
-	if agent.setup.Heartbeat == 0 {
-		timeHeart = defaultHeartBeat
-	} else {
-		timeHeart = agent.setup.Heartbeat
-	}
+	log.Info("Starting streaming agent state")
 
-	ticker := time.NewTicker(time.Second * time.Duration(timeHeart))
-	for {
+	MarshaledAgentState = foodAgentGenerator(agent.containerID)
+
+	for range ticker.C {
 		select {
 		case <-ctx.Done():
-			ticker.Stop()
 			agent.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, "Agent shut down"))
+			log.Println("stop streaming")
 			return
-		case <-ticker.C:
-			agentInfo := foodAgentGenerator(agent.tokenRequest.AgentID)
-			date, err := agentInfo.MarshalStruct()
-			if err != nil {
-				log.Errorf("Failed to marshal agent data: %s", err)
-				return
-			}
-			if err = agent.conn.WriteMessage(websocket.BinaryMessage, date); err != nil {
+		default:
+			agent.mutex.Lock()
+			if err := agent.conn.WriteMessage(websocket.BinaryMessage, MarshaledAgentState); err != nil {
 				log.Errorf("Failed to send agent data: %s", err)
 				return
 			}
+			agent.mutex.Unlock()
 			log.Info("Agent state sent")
 		}
 	}
 }
 
-func agentInit() *pb.Request {
-	id := uuid.NewV4().String()
-	log.Infof("Container %s is starting", id)
-	return &pb.Request{AgentID: id}
-}
-
 func timeReader(ctx context.Context, agent *controls) {
+
 	log.Info("Starting reading from connection")
 	defer agent.wg.Done()
-	for {
+
+	for range ticker.C {
 		select {
 		case <-ctx.Done():
-			agent.conn.Close()
+			log.Println("stop reading")
 			return
 		default:
-			for {
-				types, message, err := agent.conn.ReadMessage()
-				if types == websocket.TextMessage || err == io.ErrUnexpectedEOF {
-					log.Info(message)
-					continue
-				}
-				if types == websocket.CloseMessage {
-					return
-				}
-				if err = agent.setup.UnmarshalToStruct(message); err != nil {
-					log.Errorf("failed unmarshal messages: %s", err)
-					return
-				}
+			types, message, err := agent.conn.ReadMessage()
+			if err != nil {
+				log.Info(err)
 			}
+			if types == websocket.CloseMessage {
+				return
+			}
+			if types == websocket.TextMessage || err == io.ErrUnexpectedEOF {
+				log.Info(message)
+				continue
+			}
+			newSetup := &pb.Setup{}
+			if err = newSetup.UnmarshalToStruct(message); err != nil {
+				log.Errorf("failed unmarshal messages: %s", err)
+				return
+			}
+			log.Println(newSetup)
+			agent.mutex.Lock()
+			updateAgentState(newSetup)
+			agent.mutex.Unlock()
 		}
 	}
 }
 
-var r = rand.New(rand.NewSource(time.Now().UnixNano()))
-
-func foodAgentGenerator(agentID string) *pb.Agentstate {
+func foodAgentGenerator(agentID string) []byte {
 	log.Info("Generating agent state")
-	return &pb.Agentstate{
+	containerState = &pb.Agentstate{
 		AgentID:      agentID,
 		Token:        agent.setup.Token,
 		UserID:       agent.setup.UserID,
@@ -143,4 +136,27 @@ func foodAgentGenerator(agentID string) *pb.Agentstate {
 		Weight:       int32(r.Intn(900) + 1),
 		StateExpires: agent.setup.StateExpires,
 	}
+
+	date, err := containerState.MarshalStruct()
+	if err != nil {
+		log.Fatalf("failed unmarshal messages: %s", err)
+	}
+	return date
+}
+
+func updateAgentState(newSetup *pb.Setup) {
+	containerState.Token = newSetup.Token
+	containerState.UserID = newSetup.UserID
+	containerState.ProductID = newSetup.ProductID
+	containerState.StateExpires = newSetup.StateExpires
+
+	var err error
+	MarshaledAgentState, err = containerState.MarshalStruct()
+	if err != nil {
+		log.Fatalf("failed unmarshal messages: %s", err)
+	}
+}
+
+func getSerialID() string {
+	return uuid.NewV4().String()
 }
