@@ -1,7 +1,9 @@
 package database
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -16,6 +18,8 @@ import (
 
 var session *mgo.Session
 var mongoConfig config.MongoConfig
+
+const defaultImageURL = "http://www.reallanguagerightaway.com/content/images/thumbs/default-image_450.png"
 
 //InitiateMongoDB sets config for mongoDB
 func InitiateMongoDB(cfg config.MongoConfig) error {
@@ -35,16 +39,17 @@ func InitiateMongoDB(cfg config.MongoConfig) error {
 }
 
 func createSession() (*mgo.Session, error) {
-	//dialInfo, err := mgo.ParseURL(mongoConfig.URI)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//tlsConfig := &tls.Config{InsecureSkipVerify: true}
-	//
-	//dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
-	//	return tls.Dial("tcp", addr.String(), tlsConfig)
-	//}
-	return mgo.Dial(mongoConfig.URI)
+	dialInfo, err := mgo.ParseURL(mongoConfig.URI)
+	if err != nil {
+		return nil, err
+	}
+	tlsConfig := &tls.Config{InsecureSkipVerify: true}
+
+	dialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
+		return tls.Dial("tcp", addr.String(), tlsConfig)
+	}
+
+	return mgo.DialWithInfo(dialInfo)
 }
 
 //SaveState saves state from agent
@@ -92,7 +97,7 @@ func GetFoodsInFridge(containersID []string) ([]FoodInfo, error) {
 		if url, ok := URLs[foods[index].Product]; ok {
 			productURL = url
 		} else {
-			productURL = "http://www.reallanguagerightaway.com/content/images/thumbs/default-image_450.png"
+			productURL = defaultImageURL
 		}
 		foods[index].URL = productURL
 	}

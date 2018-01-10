@@ -96,37 +96,38 @@ func SendAgentSetup(id string, settings *pb.Setup) error {
 	}
 	var msg []byte
 	var err error
-	{
-		agent.Lock()
-		if agent.Setup == nil {
-			agent.Setup = settings
-		} else {
-			if settings.AgentID != "" {
-				agent.Setup.AgentID = settings.AgentID
-			}
-			if settings.ProductID != "" {
-				agent.Setup.ProductID = settings.ProductID
-			}
-			if settings.Token != "" {
-				agent.Setup.Token = settings.Token
-			}
-			if settings.UserID != "" {
-				agent.Setup.UserID = settings.UserID
-			}
-			if settings.StateExpires != "" {
-				agent.Setup.StateExpires = settings.StateExpires
-			}
-			if settings.Heartbeat != 0 {
-				agent.Setup.Heartbeat = settings.Heartbeat
-			}
-		}
 
-		msg, err = agent.Setup.MarshalStruct()
-		if err != nil {
-			return err
+	agent.Lock()
+	if agent.Setup == nil {
+		agent.Setup = settings
+	} else {
+		if settings.AgentID != "" {
+			agent.Setup.AgentID = settings.AgentID
 		}
-		agent.Unlock()
+		if settings.ProductID != "" {
+			agent.Setup.ProductID = settings.ProductID
+		}
+		if settings.Token != "" {
+			agent.Setup.Token = settings.Token
+		}
+		if settings.UserID != "" {
+			agent.Setup.UserID = settings.UserID
+		}
+		if settings.StateExpires != "" {
+			agent.Setup.StateExpires = settings.StateExpires
+		}
+		if settings.Heartbeat != 0 {
+			agent.Setup.Heartbeat = settings.Heartbeat
+		}
 	}
+
+	msg, err = agent.Setup.MarshalStruct()
+	if err != nil {
+		agent.Unlock()
+		return err
+	}
+	agent.Unlock()
+
 	return agent.Conn.WriteMessage(websocket.BinaryMessage, msg)
 }
 
@@ -145,7 +146,7 @@ func (c *Container) ReadAgentState() {
 				return
 			}
 
-			if t == websocket.CloseGoingAway {
+			if t == websocket.CloseMessage {
 				log.Errorf("closed ws connection with %s", c.Conn.RemoteAddr())
 				return
 			}
@@ -162,11 +163,11 @@ func (c *Container) ReadAgentState() {
 				continue
 			}
 
-			log.Infof("agent state: %v", agentState)
 			if err = database.SaveState(agentState); err != nil {
 				log.Error(err)
 				return
 			}
+			log.Infof("agent state: %v", agentState)
 		}
 	}
 }

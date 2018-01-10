@@ -25,17 +25,19 @@ type controls struct {
 	mutex       *sync.Mutex
 }
 
-var agent *controls
-var containerState *pb.Agentstate
-var MarshaledAgentState []byte
-var r = rand.New(rand.NewSource(time.Now().UnixNano()))
-
-var ticker *time.Ticker
+var (
+	MarshaledAgentState []byte
+	agent               *controls
+	containerState      *pb.Agentstate
+	r                   *rand.Rand
+	ticker              *time.Ticker
+)
 
 const defaultHeartBeat = 5
 
 //Start runs agent
 func Start(cfg *Config, ctx context.Context) error {
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 	containerID := getSerialID()
 	log.Infof("Container %s is starting", containerID)
 

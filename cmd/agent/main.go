@@ -23,16 +23,16 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	sign := make(chan os.Signal)
 	signal.Notify(sign, os.Interrupt)
-	go func(ctx context.Context, sign chan os.Signal) {
+	go func() {
 		<-sign
 		cancel()
-	}(ctx, sign)
+	}()
 
-	go func(ctx context.Context) {
+	go func() {
 		var word string
 		fmt.Scan(&word)
 		cancel()
-	}(ctx)
+	}()
 
 	if err = agent.Start(cfg, ctx); err != nil {
 		log.Fatal(err)
