@@ -235,7 +235,7 @@ func GetAllProductsNames() ([]string, error) {
 	return productNames, nil
 }
 
-//Recipes takes the slice of FoodInfo strucktures, representing all available products in all agents and return all recepies, which can be offered
+//Recipes takes the slice of FoodInfo structures representing all available products in all agents and return all recepies, which can be offered
 func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
 	var err error
 	productNameSlice := make([]string, 0, avgNumrOfIngInRecepie)
