@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"sync"
+
 	"github.com/ASeegull/SmartFridge/server/config"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -260,37 +262,61 @@ func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
 		return nil, err
 	}
 
-	var name, unit string
-	var amount int
 	copyRec := make([]Recepie, 0, len(recipes))
+	dat := make(chan Recepie, len(recipes))
+	mu := sync.Mutex{}
+	wg := &sync.WaitGroup{}
 
-OUTER:
 	for key, recipe := range recipes {
-		rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
-			Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
-			Joins("JOIN products on ingridients.product_id = products.id").
-			Joins("JOIN m_units on m_units.id = products.units").
-			Where("recepies.id=?", recipe.ID).
-			Rows()
-		if err != nil {
-			rows.Close()
-			return nil, err
-		}
-		for rows.Next() {
-			err := rows.Scan(&amount, &unit, &name)
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, index int, recipe Recepie) {
+
+			var name, unit string
+			var amount int
+
+			defer wg.Done()
+			rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
+				Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
+				Joins("JOIN products on ingridients.product_id = products.id").
+				Joins("JOIN m_units on m_units.id = products.units").
+				Where("recepies.id=?", recipe.ID).
+				Rows()
 			if err != nil {
 				rows.Close()
-				return nil, err
+				return
 			}
-			if contains(productNameSlice, name) && amount <= productMap[name] {
-				recipe.Ingred = append(recipe.Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
-				recipes[key] = recipe
-			} else {
-				rows.Close()
-				continue OUTER
+			for rows.Next() {
+				err := rows.Scan(&amount, &unit, &name)
+				if err != nil {
+					rows.Close()
+					return
+				}
+				if contains(productNameSlice, name) && amount <= productMap[name] {
+					mu.Lock()
+					recipe.Ingred = append(recipe.Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
+					recipes[key] = recipe
+					mu.Unlock()
+				} else {
+					rows.Close()
+					return
+				}
 			}
+			mu.Lock()
+			dat <- recipes[key]
+			mu.Unlock()
+		}(wg, key, recipe)
+	}
+	wg.Wait()
+
+	for i := 0; i < len(recipes); i++ {
+		select {
+		case d := <-dat:
+			copyRec = append(copyRec, d)
+		default:
 		}
-		copyRec = append(copyRec, recipes[key])
+	}
+	if len(copyRec) == 0 {
+		return []Recepie{{RecName: "Sorry but you do not have enough food"}}, nil
 	}
 	return copyRec, nil
 }
