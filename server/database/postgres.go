@@ -270,7 +270,6 @@ func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
 	for key, recipe := range recipes {
 		wg.Add(1)
 		go func(wg *sync.WaitGroup, index int, recipe Recepie) {
-
 			var name, unit string
 			var amount int
 
@@ -307,13 +306,9 @@ func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
 		}(wg, key, recipe)
 	}
 	wg.Wait()
-
-	for i := 0; i < len(recipes); i++ {
-		select {
-		case d := <-dat:
-			copyRec = append(copyRec, d)
-		default:
-		}
+	close(dat)
+	for d := range dat {
+		copyRec = append(copyRec, d)
 	}
 	if len(copyRec) == 0 {
 		return []Recepie{{RecName: "Sorry but you do not have enough food"}}, nil
