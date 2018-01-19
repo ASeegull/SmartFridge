@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ASeegull/SmartFridge/server/config"
@@ -113,9 +114,30 @@ func RegisterNewAgent(id string) error {
 	return db.Create(&Agent{ID: uuid.NewV4().String(), AgentSerial: id}).Error
 }
 
+//DeleteProductByID updates information about a product, returns nil if deleting was successful
+func DeleteAgent(id string) error {
+	return db.Table("user_agents").Delete(UserAgent{}, "agent_id = ?", id).Error
+}
+
 //RegisterAgentWithUser adds a new agent to user, returns nil if adding was successful
-func RegisterAgentWithUser(idUser string, idAgent string) error {
-	return db.Create(&UserAgent{AgentID: idAgent, UserID: idUser}).Error
+func RegisterAgentWithUser(idUser string, agentSerial string) error {
+	idAgent, err := GetAgentIDFromSerial(agentSerial)
+	if err != nil {
+		return err
+	}
+	return db.Create(&UserAgent{UserID: idUser, AgentID: idAgent}).Error
+}
+func GetAgentIDFromSerial(serial string) (string, error) {
+	type userAgent struct {
+		ID string
+	}
+	user := &userAgent{}
+	err := db.Table("agents").Find(&user, "agent_serial = ? ", serial).Error
+	if err != nil {
+		return "", err
+	}
+
+	return user.ID, nil
 }
 
 //GetAllAgentsIDForClient returns all agent for clientID as a slice of string
@@ -156,25 +178,6 @@ func GetDefaultExpirationDate(productName string) (int, error) {
 // SetExpirationDate sets default expiration date if none is provided by user
 func SetExpirationDate(shelftime int) string {
 	return time.Now().Add(time.Duration(shelftime) * time.Duration(24) * time.Hour).Format(time.ANSIC)
-}
-
-// CheckCondition sets Condition of FoodInfo
-// depending on expiration date
-func (product *FoodInfo) CheckCondition() error {
-	expdate, err := time.Parse(time.ANSIC, product.Expires)
-	if err != nil {
-		return err
-	}
-	delta := time.Now().Sub(expdate).Hours()
-	switch {
-	case delta < 48:
-		product.Condition = "warn"
-	case delta < 0:
-		product.Condition = "expired"
-	default:
-		product.Condition = "ok"
-	}
-	return nil
 }
 
 //AllRecipes functions returns all Recipes with ingridients
@@ -235,6 +238,10 @@ func GetAllProductsNames() ([]string, error) {
 
 //Recipes takes the slice of FoodInfo strucktures, representing all available products in all agents and return all recepies, which can be offered
 func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
+	if len(foodInfoSlice) == 0 {
+		return []Recepie{{RecName: "Sorry but you do not have enough food"}}, nil
+	}
+
 	var err error
 	productNameSlice := make([]string, 0, avgNumrOfIngInRecepie)
 	productMap := make(map[string]int)
@@ -260,37 +267,49 @@ func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
 		return nil, err
 	}
 
-	var name, unit string
-	var amount int
 	copyRec := make([]Recepie, 0, len(recipes))
+	mu := sync.Mutex{}
+	wg := &sync.WaitGroup{}
 
-OUTER:
 	for key, recipe := range recipes {
-		rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
-			Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
-			Joins("JOIN products on ingridients.product_id = products.id").
-			Joins("JOIN m_units on m_units.id = products.units").
-			Where("recepies.id=?", recipe.ID).
-			Rows()
-		if err != nil {
-			rows.Close()
-			return nil, err
-		}
-		for rows.Next() {
-			err := rows.Scan(&amount, &unit, &name)
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, index int, recipe Recepie) {
+			var name, unit string
+			var amount int
+
+			defer wg.Done()
+
+			rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
+				Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
+				Joins("JOIN products on ingridients.product_id = products.id").
+				Joins("JOIN m_units on m_units.id = products.units").
+				Where("recepies.id=?", recipe.ID).
+				Rows()
 			if err != nil {
-				rows.Close()
-				return nil, err
+				return
 			}
-			if contains(productNameSlice, name) && amount <= productMap[name] {
-				recipe.Ingred = append(recipe.Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
-				recipes[key] = recipe
-			} else {
-				rows.Close()
-				continue OUTER
+			defer rows.Close()
+			for rows.Next() {
+				err := rows.Scan(&amount, &unit, &name)
+				if err != nil {
+					return
+				}
+				if contains(productNameSlice, name) && amount <= productMap[name] {
+					mu.Lock()
+					recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
+					mu.Unlock()
+				} else {
+					return
+				}
 			}
-		}
-		copyRec = append(copyRec, recipes[key])
+			mu.Lock()
+			copyRec = append(copyRec, recipes[key])
+			mu.Unlock()
+		}(wg, key, recipe)
+	}
+	wg.Wait()
+	if len(copyRec) == 0 {
+		return []Recepie{{RecName: "Sorry but you do not have enough food"}}, nil
 	}
 	return copyRec, nil
 }
@@ -329,44 +348,30 @@ func CheckProductName(productName string) error {
 func FindProductByID(pid string) (*Product, error) {
 	var name, unit, image string
 	var shelfLife int
-	var product Product
-	rows, err := db.Table("products").Select("products.id, products.name, products.image, products.shelf_life, m_units.unit").
-		Joins("LEFT JOIN m_units on m_units.id = products.units").Where("products.id = ?", pid).Rows()
+	row := db.Table("products").Select("products.name, products.image, products.shelf_life, m_units.unit").
+		Joins("LEFT JOIN m_units on m_units.id = products.units").Where("products.id = ?", pid).Row()
+
+	err := row.Scan(&name, &image, &shelfLife, &unit)
 	if err != nil {
 		return nil, err
 	}
-	for rows.Next() {
-		err = rows.Scan(&pid, &name, &image, &shelfLife, &unit)
-		if err != nil {
-			rows.Close()
-			return nil, err
-		}
-		product = Product{ID: pid, Name: name, Image: image, ShelfLife: shelfLife, Units: unit}
-	}
-	rows.Close()
-	return &product, nil
+
+	return &Product{ID: pid, Name: name, Image: image, ShelfLife: shelfLife, Units: unit}, nil
 }
 
 //FindProductByName returns a pointer to the product
 func FindProductByName(name string) (*Product, error) {
 	var id, unit, image string
 	var shelfLife int
-	var product Product
-	rows, err := db.Table("products").Select("products.id, products.name, products.image, products.shelf_life, m_units.unit").
-		Joins("LEFT JOIN m_units on m_units.id = products.units").Where("name = ?", strings.ToLower(name)).Rows()
+	rows := db.Table("products").Select("products.id, products.image, products.shelf_life, m_units.unit").
+		Joins("LEFT JOIN m_units on m_units.id = products.units").Where("name = ?", strings.ToLower(name)).Row()
+
+	err := rows.Scan(&id, &image, &shelfLife, &unit)
 	if err != nil {
 		return nil, err
 	}
-	for rows.Next() {
-		err = rows.Scan(&id, &name, &image, &shelfLife, &unit)
-		if err != nil {
-			rows.Close()
-			return nil, err
-		}
-		product = Product{ID: id, Name: name, Image: image, ShelfLife: shelfLife, Units: unit}
-	}
-	rows.Close()
-	return &product, nil
+
+	return &Product{ID: id, Name: name, Image: image, ShelfLife: shelfLife, Units: unit}, nil
 }
 
 //UpdateProduct updates information about a product, returns nil if updating was successful
@@ -441,6 +446,7 @@ func GetRecepiesByProductName(productName string) ([]Recepie, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for key, recipe := range recipes {
 		rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
 			Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
@@ -460,6 +466,9 @@ func GetRecepiesByProductName(productName string) ([]Recepie, error) {
 			recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
 		}
 		rows.Close()
+	}
+	if len(recipes) == 0 {
+		return []Recepie{{RecName: "Sorry but there are not any recipes for this product"}}, nil
 	}
 	return recipes, nil
 }
@@ -501,6 +510,9 @@ func RecepiesByProducts(products []string) ([]Recepie, error) {
 			recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
 		}
 		rows.Close()
+	}
+	if len(recipes) == 0 {
+		return []Recepie{{RecName: "Sorry but there are not any recipes for these products"}}, nil
 	}
 	return recipes, nil
 }

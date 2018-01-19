@@ -19,6 +19,8 @@ import (
 var session *mgo.Session
 var mongoConfig config.MongoConfig
 
+const defaultImageURL = "http://www.reallanguagerightaway.com/content/images/thumbs/default-image_450.png"
+
 //InitiateMongoDB sets config for mongoDB
 func InitiateMongoDB(cfg config.MongoConfig) error {
 	mongoConfig = cfg
@@ -71,14 +73,14 @@ func GetFoodsInFridge(containersID []string) ([]FoodInfo, error) {
 		go func(val *string) {
 			var agent FoodAgent
 			defer wg.Done()
-			if err := c.Find(bson.M{"agentid": val}).One(&agent); err != nil {
+			if err := c.Find(bson.M{"agentid": val}).Sort("-_id").One(&agent); err != nil {
 				mutex.Lock()
 				notFound = append(notFound, *val)
 				mutex.Unlock()
 				return
 			}
 			mutex.Lock()
-			foods = append(foods, FoodInfo{Product: agent.Product, Weight: agent.Weight, Expires: agent.StateExpires, Condition: checkConditions(agent.StateExpires)})
+			foods = append(foods, FoodInfo{AgentID: agent.AgentID, Product: agent.Product, Weight: agent.Weight, Expires: agent.StateExpires, Condition: checkConditions(agent.StateExpires)})
 			mutex.Unlock()
 		}(&containersID[i])
 
@@ -89,10 +91,15 @@ func GetFoodsInFridge(containersID []string) ([]FoodInfo, error) {
 		logrus.Error(err)
 		return foods, nil
 	}
+
 	for index := range foods {
+		var productURL string
 		if url, ok := URLs[foods[index].Product]; ok {
-			foods[index].URL = url
+			productURL = url
+		} else {
+			productURL = defaultImageURL
 		}
+		foods[index].URL = productURL
 	}
 	return foods, nil
 }
@@ -104,8 +111,7 @@ func checkConditions(state string) string {
 		return ""
 	}
 
-	days := time.Now().Sub(productTime).Hours() / 24
-	//int(time.Since(productTime).Hours() / (-24))
+	days := int(time.Since(productTime).Hours() / (-24))
 	switch {
 	case days < 0:
 		return "expired"
