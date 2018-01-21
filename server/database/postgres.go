@@ -268,6 +268,7 @@ func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
 	}
 
 	copyRec := make([]Recepie, 0, len(recipes))
+	dat := make(chan Recepie, len(recipes))
 	mu := sync.Mutex{}
 	wg := &sync.WaitGroup{}
 
@@ -278,7 +279,6 @@ func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
 			var amount int
 
 			defer wg.Done()
-
 			rows, err := db.Table("recepies").Select("ingridients.amount, m_units.unit, products.name").
 				Joins("LEFT JOIN ingridients on ingridients.recipe_id = recepies.id").
 				Joins("JOIN products on ingridients.product_id = products.id").
@@ -286,28 +286,35 @@ func Recipes(foodInfoSlice []FoodInfo) ([]Recepie, error) {
 				Where("recepies.id=?", recipe.ID).
 				Rows()
 			if err != nil {
+				rows.Close()
 				return
 			}
-			defer rows.Close()
 			for rows.Next() {
 				err := rows.Scan(&amount, &unit, &name)
 				if err != nil {
+					rows.Close()
 					return
 				}
 				if contains(productNameSlice, name) && amount <= productMap[name] {
 					mu.Lock()
-					recipes[key].Ingred = append(recipes[key].Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
+					recipe.Ingred = append(recipe.Ingred, strconv.Itoa(amount)+" "+unit+" "+name)
+					recipes[key] = recipe
 					mu.Unlock()
 				} else {
+					rows.Close()
 					return
 				}
 			}
 			mu.Lock()
-			copyRec = append(copyRec, recipes[key])
+			dat <- recipes[key]
 			mu.Unlock()
 		}(wg, key, recipe)
 	}
 	wg.Wait()
+	close(dat)
+	for d := range dat {
+		copyRec = append(copyRec, d)
+	}
 	if len(copyRec) == 0 {
 		return []Recepie{{RecName: "Sorry but you do not have enough food"}}, nil
 	}

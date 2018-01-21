@@ -9,14 +9,15 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"flag"
 )
 
 type Product struct {
-	ID        string `json:"productID"`
-	Name      string `json:"productName"`
-	ShelfLife int    `json:"productShelfLife"`
-	Units     string `json:"productUnit"`
-	Image     string `json:"image"`
+	ID        string `json:"ID"`
+	Name      string `json:"name"`
+	ShelfLife int    `json:"shelfLife"`
+	Units     string `json:"units"`
+	Image     string `json:"imageURL"`
 }
 
 type Recepie struct {
@@ -42,8 +43,9 @@ func getAllRecipes() {
 	}
 	var recipes []Recepie
 	json.NewDecoder(resp.Body).Decode(&recipes)
+	fmt.Printf("|%-2s|%-10s|%-15s|%-15s|%-25s|%-20s\n", "No", "Name", "Description", "Complexity", "Coocking time in minutes", "Ingredients")
 	for k, v := range recipes {
-		fmt.Printf("|%-2d|%-10s|%s|%-7s|%-2d|%-20s|\n", k, v.RecName, v.Description, v.Complexity, v.CoockingTimeMin, v.Ingred)
+		fmt.Printf("|%-2d|%-10s|%-15s|%-15s|%-25d|%-20s\n", k+1, v.RecName, v.Description, v.Complexity, v.CoockingTimeMin, v.Ingred)
 	}
 }
 
@@ -71,7 +73,8 @@ func getProductByName(name string) {
 			log.Println(err)
 			return
 		}
-		fmt.Printf("|%-10s|%-2d|%-7s|%s|%-50s|\n", p.Name, p.ShelfLife, p.Units, p.ID, p.Image)
+		fmt.Printf("|%-10s|%-10s|%-7s|%-36s|%-36s\n", "Name", "Shelf life", "Units", "ID", "Image URL")
+		fmt.Printf("|%-10s|%-10d|%-7s|%-36s|%-250s\n", p.Name, p.ShelfLife, p.Units, p.ID, p.Image)
 	} else {
 		fmt.Println(resp.Status)
 	}
@@ -101,7 +104,8 @@ func getProductByID(id string) (*Product, error) {
 			log.Println(err)
 			return nil, err
 		}
-		fmt.Printf("|%-10s|%-2d|%-7s|%s|%-50s|\n", p.Name, p.ShelfLife, p.Units, p.ID, p.Image)
+		fmt.Printf("|%-10s|%-10s|%-7s|%-36s|%-36s\n", "Name", "Shelf life", "Units", "ID", "Image URL")
+		fmt.Printf("|%-10s|%-10d|%-7s|%-36s|%-250s\n", p.Name, p.ShelfLife, p.Units, p.ID, p.Image)
 		return &p, nil
 	} else {
 		fmt.Println(resp.Status)
@@ -148,13 +152,14 @@ func getAllProducts() {
 	}
 	var products []Product
 	json.NewDecoder(resp.Body).Decode(&products)
+	fmt.Printf("|%-2s|%-10s|%-10s|%-7s|%-36s|%-36s\n", "No", "Name", "Shelf life", "Units", "ID", "Image URL")
 	for k, v := range products {
-		fmt.Printf("|%-2d|%-10s|%-2d|%-7s|%s|%-50s|\n", k, v.Name, v.ShelfLife, v.Units, v.ID, v.Image)
+		fmt.Printf("|%-2d|%-10s|%-10d|%-7s|%-36s|%-250s\n", k+1, v.Name, v.ShelfLife, v.Units, v.ID, v.Image)
 	}
 }
 
 func addProduct(name string, shelfLife int, image string, unit string) {
-	product := &Product{Name: name, ShelfLife: shelfLife, Image: image, Units: unit}
+	product := &Product{Name: name, ShelfLife: shelfLife, Image: strings.Trim(image, " "), Units: unit}
 	url := URL + "/addProduct"
 	jsonStr, err := json.Marshal(product)
 	if err != nil {
@@ -188,7 +193,7 @@ func updateProduct(product *Product) {
 		log.Println(err)
 		return
 	}
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonStr))
 	if err != nil {
 		log.Println(err)
 		return
@@ -227,8 +232,9 @@ func recepies() {
 	}
 	var recipes []Recepie
 	json.NewDecoder(resp.Body).Decode(&recipes)
+	fmt.Printf("|%-2s|%-10s|%-15s|%-15s|%-25s|%-20s\n", "No", "Name", "Description", "Complexity", "Coocking time in minutes", "Ingredients")
 	for k, v := range recipes {
-		fmt.Printf("|%-2d|%-10s|%s|%-7s|%-2d|%-20s|\n", k, v.RecName, v.Description, v.Complexity, v.CoockingTimeMin, v.Ingred)
+		fmt.Printf("|%-2d|%-10s|%-15s|%-15s|%-25d|%-20s\n", k+1, v.RecName, v.Description, v.Complexity, v.CoockingTimeMin, v.Ingred)
 	}
 }
 
@@ -271,9 +277,70 @@ func isAuthorized() bool {
 	return true
 }
 
+func getRecepiesroductName(productName string) {
+	req, err := http.NewRequest("GET", URL+"/recipes/getByProductName/"+productName, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	cookie := "sessionName=" + session
+	req.Header.Add("Cookie", cookie)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	if resp.StatusCode == http.StatusOK {
+		var recipes []Recepie
+		json.NewDecoder(resp.Body).Decode(&recipes)
+		fmt.Printf("|%-2s|%-10s|%-15s|%-15s|%-25s|%-20s\n", "No", "Name", "Description", "Complexity", "Coocking time in minutes", "Ingredients")
+		for k, v := range recipes {
+			fmt.Printf("|%-2d|%-10s|%-15s|%-15s|%-25d|%-20s\n", k+1, v.RecName, v.Description, v.Complexity, v.CoockingTimeMin, v.Ingred)
+		}
+	} else {
+		fmt.Println(resp.Status)
+		return
+	}
+}
+
+func getRecepiesroductNames(productNames []string) {
+	jsonStr, err := json.Marshal(productNames)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	req, err := http.NewRequest("POST", URL+"/recipes/recipesByProductNames", bytes.NewBuffer(jsonStr))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	cookie := "sessionName" + "=" + session
+	req.Header.Add("Cookie", cookie)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	var recipes []Recepie
+	json.NewDecoder(resp.Body).Decode(&recipes)
+	fmt.Printf("|%-2s|%-10s|%-15s|%-15s|%-25s|%-20s\n", "No", "Name", "Description", "Complexity", "Coocking time in minutes", "Ingredients")
+	for k, v := range recipes {
+		fmt.Printf("|%-2d|%-10s|%-15s|%-15s|%-25d|%-20s\n", k+1, v.RecName, v.Description, v.Complexity, v.CoockingTimeMin, v.Ingred)
+	}
+}
+
 func printMenu() {
 	fmt.Println("====================================================")
-	fmt.Println("Please choose:")
+	fmt.Println("Please choose: ")
 	fmt.Println("1 all recepies")
 	fmt.Println("2 all products (authentication needed)")
 	fmt.Println("3 get product dy name (authentication needed)")
@@ -281,23 +348,28 @@ func printMenu() {
 	fmt.Println("5 delete product dy ID (authentication needed)")
 	fmt.Println("6 update product (authentication needed)")
 	fmt.Println("7 recomended recepies (authentication needed)")
-	fmt.Println("8 login")
-	fmt.Println("9 logout")
-	fmt.Println("10 quit\n====================================================")
+	fmt.Println("8 find recepies by product name (authentication needed)")
+	fmt.Println("9 find recepies by many product names (authentication needed)")
+	fmt.Println("10 login")
+	fmt.Println("11 logout")
+	fmt.Println("12 quit\n====================================================")
 }
 
 func main() {
-	config, err := ReadConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
-	URL = config.ServerAddress
-
+	var arg = flag.String("addr","default", "server address")
+	//config, err := ReadConfig()
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//URL = config.ServerAddress
+	//URL = "https://limitless-waters-86993.herokuapp.com/client"
+	flag.Parse()
+	URL = *arg
 	fmt.Println("====================================================")
 	fmt.Println("Welcome to the smart frige console client")
 	var choice int
 
-	for choice != 10 {
+	for choice != 12 {
 		printMenu()
 		fmt.Scan(&choice)
 		switch choice {
@@ -364,7 +436,7 @@ func main() {
 				fmt.Println("Old image link is " + p.Image + "; Enter new product image link (enter n if you do not wont to change it)")
 				fmt.Scan(&image)
 				if image != "n" {
-					p.Image = image
+					p.Image = strings.Trim(image, " ")
 				}
 				fmt.Println("Old product measuring unit is " + p.Units + "; Enter new product measuring unit (enter n if you do not wont to change it)")
 				fmt.Scan(&unit)
@@ -378,21 +450,46 @@ func main() {
 				recepies()
 			}
 		case 8:
+			if isAuthorized() {
+				var name string
+				fmt.Println("Enter product name")
+				fmt.Scan(&name)
+				getRecepiesroductName(name)
+			}
+		case 9:
+			if isAuthorized() {
+				var name string
+				nameSlice := make([]string, 0)
+				for {
+					fmt.Println("Enter product name or n case you finished with entering products")
+					fmt.Scan(&name)
+					if name == "n" {
+						break
+					}
+					nameSlice = append(nameSlice, name)
+				}
+				getRecepiesroductNames(nameSlice)
+			}
+		case 10:
+			if session != "" {
+				fmt.Println("You are logged in")
+				continue
+			}
 			var login, pass string
 			fmt.Println("Enter login")
 			fmt.Scan(&login)
 			fmt.Println("Enter password")
 			fmt.Scan(&pass)
 			loginFunc(login, pass)
-		case 9:
+		case 11:
 			if isAuthorized() {
 				logout()
 				fmt.Println("Logged out")
 			}
-		case 10:
+		case 12:
 			fmt.Println("Bye!")
 		default:
-			fmt.Printf("Are you sure you have chosen properly?")
+			fmt.Println("Are you sure you have chosen properly?")
 		}
 	}
 }
