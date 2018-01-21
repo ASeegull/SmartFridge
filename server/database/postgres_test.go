@@ -14,7 +14,7 @@ import (
 func TestContains(t *testing.T) {
 	testSlice := []string{"test string", "test string 2"}
 	presentedSring := "test string"
-	notPresentedSring := "not presented strind"
+	notPresentedSring := "not presented string"
 	switch {
 	case !contains(testSlice, presentedSring):
 		t.Errorf("The slice \"%s\" contains \"%s\", but the function returns false.", testSlice, presentedSring)
