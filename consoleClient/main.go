@@ -357,12 +357,6 @@ func printMenu() {
 
 func main() {
 	var arg = flag.String("addr","default", "server address")
-	//config, err := ReadConfig()
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//URL = config.ServerAddress
-	//URL = "https://limitless-waters-86993.herokuapp.com/client"
 	flag.Parse()
 	URL = *arg
 	fmt.Println("====================================================")
