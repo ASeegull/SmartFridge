@@ -160,5 +160,6 @@ func updateAgentState(newSetup *pb.Setup) {
 }
 
 func getSerialID() string {
-	return uuid.NewV4().String()
+	s, _ := uuid.NewV4()
+	return s.String()
 }
