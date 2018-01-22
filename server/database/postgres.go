@@ -21,23 +21,18 @@ const (
 	avgNumOfAgentsOfUser   = 10
 )
 
-const (
-	PublicToken = "verysecrettoken"
-	privateKey  = "muchmoresecrettoken"
-)
-
-var dbinfo string
+var dbInfo string
 var db *gorm.DB
 
-//InitPostgersDB initiates connection to postgres gatabase
-func InitPostgersDB(cfg config.PostgresConfigStr) error {
+//InitPostgresDB initiates connection to postgres database
+func InitPostgresDB(cfg config.PostgresConfigStr) error {
 	var err error
 	if db != nil {
 		return nil
 	}
-	dbinfo = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+	dbInfo = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		cfg.Dbhost, cfg.Dbport, cfg.DbUser, cfg.DbPassword, cfg.DbName)
-	db, err = gorm.Open("postgres", dbinfo)
+	db, err = gorm.Open("postgres", dbInfo)
 	if err != nil {
 		return err
 	}
@@ -58,7 +53,11 @@ func RegisterNewUser(login string, passHash string) (string, error) {
 	if err = db.Where("role = ?", "user").Find(&userRole).Error; err != nil {
 		return "", err
 	}
-	user.ID = uuid.NewV4().String()
+	UUID, err := uuid.NewV4()
+	if err != nil{
+		return "",err
+	}
+	user.ID = UUID.String()
 	user.Login = login
 	user.Password = passHash
 	user.Role = userRole.ID
@@ -111,7 +110,11 @@ func CheckAgent(idUser string, idAgent string) (bool, error) {
 
 //RegisterNewAgent adds a new agent to user, returns nil if adding was successful
 func RegisterNewAgent(id string) error {
-	return db.Create(&Agent{ID: uuid.NewV4().String(), AgentSerial: id}).Error
+	UUID, err := uuid.NewV4()
+	if err != nil{
+		return err
+	}
+	return db.Create(&Agent{ID: UUID.String(), AgentSerial: id}).Error
 }
 
 //DeleteProductByID updates information about a product, returns nil if deleting was successful
@@ -326,13 +329,16 @@ func contains(slice []string, v string) bool {
 
 //AddProduct adds a new product, returns nil if adding was successful
 func AddProduct(product *Product) error {
-	id := uuid.NewV4().String()
+	id,err := uuid.NewV4()
+	if err != nil{
+		return err
+	}
 	var mUnit MUnit
-	err := db.Table("m_units").Where("unit = ?", strings.ToLower(product.Units)).First(&mUnit).Error
+	err = db.Table("m_units").Where("unit = ?", strings.ToLower(product.Units)).First(&mUnit).Error
 	if err != nil {
 		return err
 	}
-	newProduct := Product{ID: id, Name: product.Name, ShelfLife: product.ShelfLife, Image: product.Image, Units: mUnit.ID}
+	newProduct := Product{ID: id.String(), Name: product.Name, ShelfLife: product.ShelfLife, Image: product.Image, Units: mUnit.ID}
 	return db.Create(&newProduct).Error
 }
 

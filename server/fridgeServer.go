@@ -43,14 +43,12 @@ func Run(cfg config.ServerConfig) error {
 	}).Handler(newRouter())
 
 	log.Printf("Server started on %s:%s", cfg.Host, cfg.Port)
-	// return http.ListenAndServeTLS(cfg.Host+":"+cfg.Port, "cert.pem", "key.pem", handler)
 	return http.ListenAndServe(cfg.Host+":"+cfg.Port, handler)
 }
 
 func newRouter() *mux.Router {
 	router := mux.NewRouter()
 
-	//router.HandleFunc("/agent", agentAuthentication).Methods(POST)
 	router.HandleFunc("/agent", createWS).Methods(GET)
 
 	sub := router.PathPrefix("/client").Subrouter()

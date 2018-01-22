@@ -33,12 +33,15 @@ var (
 	ticker              *time.Ticker
 )
 
-const defaultHeartBeat = 5
+const defaultHeartBeat = 3
 
 //Start runs agent
 func Start(cfg *Config, ctx context.Context) error {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
-	containerID := getSerialID()
+	containerID,err := getSerialID()
+	if err != nil{
+		return err
+	}
 	log.Infof("Container %s is starting", containerID)
 
 	dialer := websocket.Dialer{ReadBufferSize: 1024 * 4, WriteBufferSize: 1024 * 4}
@@ -159,6 +162,10 @@ func updateAgentState(newSetup *pb.Setup) {
 	}
 }
 
-func getSerialID() string {
-	return uuid.NewV4().String()
+func getSerialID() (string,error) {
+	UUID,err := uuid.NewV4()
+	if err != nil{
+		return "",err
+	}
+	return UUID.String(),nil
 }

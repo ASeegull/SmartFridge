@@ -44,7 +44,7 @@ func getServer() *httptest.Server {
 		log.Fatal(err)
 	}
 
-	if err = database.InitPostgersDB(cfg.Postgres); err != nil {
+	if err = database.InitPostgresDB(cfg.Postgres); err != nil {
 		log.Fatal(err)
 	}
 
@@ -69,7 +69,11 @@ func TestSignUp(t *testing.T) {
 	server := getServer()
 	client := getClientWithoutCookie()
 	handlerURL := fmt.Sprintf("%s/client/signup", server.URL)
-	newUserLogin = uuid.NewV4().String()[:10]
+	UUID,err := uuid.NewV4()
+	if err != nil{
+		t.Fatal(err)
+	}
+	newUserLogin = UUID.String()[:10]
 	newUserPassword = "qwerty"
 
 	tt := []struct {
