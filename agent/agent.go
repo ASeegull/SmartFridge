@@ -162,6 +162,7 @@ func updateAgentState(newSetup *pb.Setup) {
 	}
 }
 
+
 func getSerialID() (string,error) {
 	UUID,err := uuid.NewV4()
 	if err != nil{
